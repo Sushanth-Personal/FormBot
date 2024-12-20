@@ -172,11 +172,19 @@
   .behindContainer .leftImage {
     top: 120px;
   }
+
+  .loginPage nav{
+    display: none;
+  }
 }
 
 @media screen and (max-width: 480px) {
   .loginContainer .loginForm {
     min-width: 90%;
+  }
+
+  .behindContainer .leftImage {
+    top: 30px;
   }
 
   .loginPage nav {
