@@ -10,6 +10,7 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
+
 // Register Service Worker (in production)
 if (import.meta.env.MODE === 'production') {
   if ('serviceWorker' in navigator) {
