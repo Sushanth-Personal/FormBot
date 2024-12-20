@@ -1,0 +1,13 @@
+body {
+    width: 100vw;
+    overflow: scroll;
+  
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  
