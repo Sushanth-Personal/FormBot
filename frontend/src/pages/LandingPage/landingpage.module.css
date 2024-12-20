@@ -1,0 +1,66 @@
+.landingPage{
+    background: linear-gradient(0deg, #121212, #121212),
+    linear-gradient(0deg, #171923, #171923),
+    linear-gradient(0deg, #171923, #171923);
+    
+    height: 100vh;
+    width: 100vw;
+   padding-top: 22px;
+}
+
+.navBar{
+    height: 72px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color:white;
+    margin-left: 80px;
+    margin-right: 80px;
+}
+
+.logoContainer{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 40px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+
+}
+
+.logoContainer h1{
+    margin:0;
+    font-size: 1.8rem;
+}
+
+.rightContainer{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.signIn{
+    border:1px solid #7EA6FF;
+    background:transparent;
+    width: 87px;
+    height: 40px;
+    border-radius: 6px;
+    color:#7EA6FF;
+    font-family: 'Open Sans',  sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+}   
+
+
+.createBot{
+    border:none;
+    background-color: #1A5FFF;
+    width: 173px;
+    height: 40px;
+    border-radius: 6px;
+    color:#FFFFFF;
+    box-shadow: 0px 1px 0px 0px #FFFFFF33 inset;
+    font-family: 'Open Sans',  sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+}

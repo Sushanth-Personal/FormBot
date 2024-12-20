@@ -1,6 +1,7 @@
 body {
     width: 100vw;
     overflow: scroll;
+    font-family: 'Poppins', sans-serif;
   
   }
 
@@ -10,4 +11,6 @@ body {
     padding: 0;
   }
   
-  
+  html{
+    font-size: 62.5%;
+}
