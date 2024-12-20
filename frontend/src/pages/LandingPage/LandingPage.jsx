@@ -1,15 +1,21 @@
 import styles from "./landingpage.module.css";
+import {useNavigate} from "react-router-dom";
 
 const LandingPage = () => {
+
+  const navigate = useNavigate();
+
   return (
     <section className={styles.landingPage}>
       <nav className={styles.navBar}>
         <div className={styles.logoContainer}>
-          <img src="/logo.png" alt="" />
+          <img src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695019/logo_cgdotu.png" alt="" />
           <h1>FormBot</h1>
         </div>
         <div className={styles.rightContainer}>
-          <button className={styles.signIn}>Sign in</button>
+          <button 
+          onClick={() => navigate("/login")}
+          className={styles.signIn}>Sign in</button>
           <button className={styles.createBot}>
             Create a FormBot
           </button>
@@ -31,14 +37,14 @@ const LandingPage = () => {
           </div>
           <img
             className={styles.svgRight}
-            src="/svgRight.png"
+            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695025/svgRight_yzszlu.png"
             alt=""
           />
         </div>
         <div className={styles.imageContainer}>
           <img
             className={styles.landingpageBanner}
-            src="/landingpageBanner.png"
+            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734694634/landingpageBanner_a1elhi.png"
             alt=""
           />
         </div>
@@ -60,7 +66,7 @@ const LandingPage = () => {
                   Status{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -68,7 +74,7 @@ const LandingPage = () => {
                   Documentation{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -76,7 +82,7 @@ const LandingPage = () => {
                   Roadmap
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -84,7 +90,7 @@ const LandingPage = () => {
                   Pricing
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -97,7 +103,7 @@ const LandingPage = () => {
                   Discord{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -105,7 +111,7 @@ const LandingPage = () => {
                   GitHub repository{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -113,7 +119,7 @@ const LandingPage = () => {
                   Twitter{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -121,7 +127,7 @@ const LandingPage = () => {
                   LinkedIn{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
@@ -129,7 +135,7 @@ const LandingPage = () => {
                   OSS Friends{" "}
                   <img
                     className={styles.link}
-                    src="/link.png"
+                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
                     alt=""
                   />
                 </li>
