@@ -1,7 +1,7 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode"; // Ensure you're using the correct import here
 
-const baseURL = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 // const baseURL = "https://formbot-backend-scps.onrender.com";
 
 const api = axios.create({
