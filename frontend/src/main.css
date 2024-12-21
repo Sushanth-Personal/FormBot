@@ -1,9 +1,9 @@
 body {
     width: 100vw;
-    overflow: scroll;
     font-family: 'Poppins', sans-serif;
-  
+  overflow-x: hidden;
   }
+
 
   * {
     box-sizing: border-box;

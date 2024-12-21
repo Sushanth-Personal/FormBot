@@ -156,7 +156,7 @@ console.log(username, email, password);
           <img
           role="button"
           onClick={() => window.history.back() || navigate("/")}
-          src="/arrow_back.png" alt="Back Arrow" />
+          src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695297/arrow_back_wzcjzz.png" alt="Back Arrow" />
         </div>
         {isJustRegistered && (
           <p className={styles.justRegistered}>

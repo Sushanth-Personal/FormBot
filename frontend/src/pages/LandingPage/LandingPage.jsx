@@ -1,14 +1,25 @@
 import styles from "./landingpage.module.css";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../customHooks/useAuth";
-import {useUserContext} from "../../Contexts/UserContext";
+import { useUserContext } from "../../Contexts/UserContext";
 const LandingPage = () => {
   useAuth();
   const navigate = useNavigate();
-  const { isLoggedIn, userData } = useUserContext();
+  const { isLoggedIn, userData, setIsLoggedIn } = useUserContext();
   const handleLogin = () => {
-    if(!isLoggedIn){navigate("/login");}
+    if (!isLoggedIn) {
+      navigate("/login");
+    }
   };
+
+const handleSignOut = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userData");
+  navigate("/"); 
+  setIsLoggedIn(false);
+};
+
   return (
     <section className={styles.landingPage}>
       <nav className={styles.navBar}>
@@ -19,15 +30,29 @@ const LandingPage = () => {
           />
           <h1>FormBot</h1>
         </div>
+        {isLoggedIn && (
+           <p className={styles.userName}>
+           Hi! {userData.username}
+         </p>
+        )}
         <div className={styles.rightContainer}>
-          {!isLoggedIn ? (<button
-            onClick={handleLogin}
-            className={styles.signIn}
+          {!isLoggedIn ? (
+            <button onClick={handleLogin} className={styles.signIn}>
+              Sign in
+            </button>
+          ) : (
+            <>
+              <button onClick={handleSignOut} className={styles.signIn}>
+                Sign out
+              </button>
+            </>
+          )}
+
+          <button
+            className={styles.createBot}
+            disabled={!isLoggedIn}
+            onClick={() => navigate("/dashboard")}
           >
-            Sign in
-          </button>):(<p className = {styles.userName}>Hi! {userData.username}</p>)}
-          
-          <button className={styles.createBot}>
             Create a FormBot
           </button>
         </div>
@@ -46,7 +71,11 @@ const LandingPage = () => {
               experiences. Embed them anywhere on your web/mobile apps
               and start collecting results like magic.
             </p>
-            <button className={styles.createBotButton}>
+            <button
+              disabled={!isLoggedIn}
+              onClick={() => navigate("/dashboard")}
+              className={styles.createBotButton}
+            >
               Create a FormBot for free
             </button>
           </div>
@@ -67,7 +96,10 @@ const LandingPage = () => {
           <div className={styles.footerContent}>
             <div className={styles.col1}>
               <h1>
-                <img src="/logo.png" alt="logo" />
+                <img
+                  src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695019/logo_cgdotu.png"
+                  alt="logo"
+                />
                 FormBot
               </h1>
               <ul>

@@ -23,6 +23,19 @@
   z-index: 200;
 }
 
+.loginPage nav img{
+  transform: 150ms ease-in-out;
+}
+
+.loginPage nav img:hover{
+  transform: scale(1.2);
+}
+
+.loginPage nav img:active{
+  transform: scale(0.9);
+}
+
+
 .justRegistered{
   position: absolute;
   top: -7px;
@@ -120,6 +133,15 @@
   width: 100%;
   padding: 9px;
   padding-left: 18px;
+  transform: 150ms ease-in-out;
+}
+
+.emailForm input:focus,
+.passwordForm input:focus,
+.userNameForm input:focus {
+  outline: none;
+  border: 1px solid #1a5fff;
+  transform: scale(1.06);
 }
 
 .loginButton {
@@ -178,6 +200,13 @@
 .signUpText a {
   color: #1a5fff;
   text-decoration: none;
+  transform: 150ms ease-in-out;
+}
+
+.signUpText a:hover{
+  cursor: pointer;
+  filter:brightness(0.8);
+  transform: scale(1.05);
 }
 
 

@@ -52,8 +52,14 @@
   font-family: "Open Sans", sans-serif;
   font-weight: 700;
   font-size: 1.6rem;
+  transform: 150ms ease-in-out;
 }
 
+.signIn:hover {
+  cursor: pointer;
+  filter:brightness(0.9);
+  transform: scale(0.95);
+}
 .createBot {
   border: none;
   background-color: #1a5fff;
@@ -65,6 +71,13 @@
   font-family: "Open Sans", sans-serif;
   font-weight: 700;
   font-size: 1.6rem;
+  transform: 150ms ease-in-out;
+}
+
+.createBot:hover {
+  cursor: pointer;
+  filter:brightness(0.9);
+  transform: scale(0.95);
 }
 
 .body {
@@ -139,6 +152,13 @@
   font-family: "Open Sans", sans-serif;
   font-weight: 600;
   font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  transform: 150ms ease-in-out;
+  cursor: pointer;
+}
+
+.createBotButton:hover {
+  filter:brightness(0.9);
+  transform: scale(0.95);
 }
 
 .imageContainer {
@@ -283,12 +303,12 @@
   }
 }
 
-@media screen and (max-width: 680px) {
+@media screen and (max-width: 730px) {
   .navBar {
     margin: 0;
     flex-direction: column;
     align-items: center;
-    row-gap: 40px;
+    row-gap: 15px;
     margin-bottom: 120px;
     margin-top: 40px;
   }
