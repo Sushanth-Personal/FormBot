@@ -14,7 +14,7 @@ const useAuth = () => {
 
         if (!storedUserId) {
           // Redirect to login if userId is not in localStorage
-          navigate("/");
+          navigate("/login");
           return;
         }
 
@@ -35,7 +35,7 @@ const useAuth = () => {
         }
       } catch (error) {
         console.error("Error during authentication:", error);
-        navigate("/"); // Redirect to login on error
+        navigate("/login"); // Redirect to login on error
       }
     };
 
