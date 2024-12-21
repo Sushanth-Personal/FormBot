@@ -1,9 +1,9 @@
 import styles from "./landingpage.module.css";
 import { useNavigate } from "react-router-dom";
-import useAuth from "../../customHooks/useAuth";
+// import useAuth from "../../customHooks/useAuth";
 import { useUserContext } from "../../Contexts/UserContext";
 const LandingPage = () => {
-  useAuth();
+  // useAuth();
   const navigate = useNavigate();
   const { isLoggedIn, userData, setIsLoggedIn } = useUserContext();
   const handleLogin = () => {
