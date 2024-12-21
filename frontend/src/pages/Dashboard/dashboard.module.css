@@ -1,0 +1,61 @@
+.dashboard {
+  width: 100vw;
+  background: linear-gradient(0deg, #121212, #121212),
+  linear-gradient(0deg, #171923, #171923),
+  linear-gradient(0deg, #171923, #171923);
+
+}
+
+.navBar {
+  height: 65px;
+  position: relative;
+}
+
+.workspaceSelector {
+  position: absolute;
+  left: 35%;
+  width: 292px;
+  top:12px;
+  height: 40px;
+  border: 1px solid #ffffff;
+  opacity: 16%;
+  border-radius: 6px;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 10px;
+  font-size: 1.6rem;
+  font-weight:600 ;
+  color:#ffffff;
+  opacity:92%;
+}
+
+.share{
+  position: absolute;
+  right: 40px;
+  width: 86px;
+  height: 40px;
+  top:12px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  color:white;
+  display: flex;
+  background-color:#1a5fff;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transform: 150ms ease-in-out;
+}
+
+.share:hover{
+  filter:brightness(0.9);
+  transform: scale(1.05);
+}
+
+.share:active{
+  transform: scale(0.98);
+}
