@@ -1,10 +1,5 @@
 
-.error{
-    color: red;
-    height: 5px;
-  }
-
-
+  
 .loginPage {
   background: linear-gradient(0deg, #121212, #121212),
     linear-gradient(0deg, #171923, #171923),
@@ -246,4 +241,24 @@
   .loginPage nav {
     padding-left: 20px;
   }
+}
+
+
+
+.error{
+  color: #FF4141;
+  height: 5px;
+}
+
+.errorField input {
+  border: 2px solid #FF4141; /* Red border for error input */
+}
+
+.errorField label {
+  color: #FF4141; /* Red color for the label */
+}
+
+.errorField input:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); /* Optional: Red shadow on focus */
 }

@@ -196,7 +196,7 @@ console.log(username, email, password);
         <div className={styles.loginForm}>
           <>
             {!isLogin && (
-              <div className={styles.userNameForm}>
+              <div className={`${styles.userNameForm} ${errors.username ? styles.errorField : ""}`}>
                 <label htmlFor="">Username</label>
                 <input
                   type="text"
@@ -208,7 +208,7 @@ console.log(username, email, password);
               </div>
             )}
 
-            <div className={styles.emailForm}>
+            <div className={`${styles.emailForm} ${errors.email ? styles.errorField : ""}`}>
               <label htmlFor="">Email</label>
               <input
                 type="email"
@@ -232,7 +232,7 @@ console.log(username, email, password);
             </div>
 
             {!isLogin && (
-              <div className={styles.passwordForm}>
+              <div className={`${styles.passwordForm} ${errors.confirmPassword ? styles.errorField : ""}`}>
                 <label htmlFor="">Confirm Password</label>
                 <input
                   onChange={(e) => setConfirmPassword(e.target.value)}
