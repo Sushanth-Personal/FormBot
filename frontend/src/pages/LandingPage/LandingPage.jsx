@@ -1,21 +1,32 @@
 import styles from "./landingpage.module.css";
-import {useNavigate} from "react-router-dom";
-
+import { useNavigate } from "react-router-dom";
+import useAuth from "../../customHooks/useAuth";
+import {useUserContext} from "../../Contexts/UserContext";
 const LandingPage = () => {
-
+  useAuth();
   const navigate = useNavigate();
-
+  const { isLoggedIn, userData } = useUserContext();
+  const handleLogin = () => {
+    if(!isLoggedIn){navigate("/login");}
+  };
   return (
     <section className={styles.landingPage}>
       <nav className={styles.navBar}>
         <div className={styles.logoContainer}>
-          <img src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695019/logo_cgdotu.png" alt="" />
+          <img
+            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695019/logo_cgdotu.png"
+            alt=""
+          />
           <h1>FormBot</h1>
         </div>
         <div className={styles.rightContainer}>
-          <button 
-          onClick={() => navigate("/login")}
-          className={styles.signIn}>Sign in</button>
+          {!isLoggedIn ? (<button
+            onClick={handleLogin}
+            className={styles.signIn}
+          >
+            Sign in
+          </button>):(<p className = {styles.userName}>Hi! {userData.username}</p>)}
+          
           <button className={styles.createBot}>
             Create a FormBot
           </button>
@@ -23,7 +34,11 @@ const LandingPage = () => {
       </nav>
       <body className={styles.body}>
         <div className={styles.description}>
-          <img className={styles.svgLeft} src="/svgLeft.png" alt="" />
+          <img
+            className={styles.svgLeft}
+            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734715029/SVG_1_dv7sqp.png"
+            alt="left svg"
+          />
           <div className={styles.content}>
             <h1>Build advanced chatbots visually</h1>
             <p>
@@ -38,7 +53,7 @@ const LandingPage = () => {
           <img
             className={styles.svgRight}
             src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695025/svgRight_yzszlu.png"
-            alt=""
+            alt="right svg"
           />
         </div>
         <div className={styles.imageContainer}>
@@ -52,7 +67,7 @@ const LandingPage = () => {
           <div className={styles.footerContent}>
             <div className={styles.col1}>
               <h1>
-                <img src="/logo.png" alt="" />
+                <img src="/logo.png" alt="logo" />
                 FormBot
               </h1>
               <ul>
@@ -67,7 +82,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -75,7 +90,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -83,7 +98,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -91,7 +106,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
               </ul>
@@ -104,7 +119,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -112,7 +127,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -120,7 +135,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -128,7 +143,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
                 <li>
@@ -136,7 +151,7 @@ const LandingPage = () => {
                   <img
                     className={styles.link}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734695014/link_vj5pon.png"
-                    alt=""
+                    alt="link"
                   />
                 </li>
               </ul>

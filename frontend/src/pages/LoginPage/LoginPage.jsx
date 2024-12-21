@@ -2,6 +2,8 @@ import styles from "./loginpage.module.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useScreenSize from "../../customHooks/useScreenSize";
+import {useUserContext} from "../../Contexts/UserContext";
+import { loginUser, registerUser} from "../../api/api";
 
 import {
   validateEmail,
@@ -11,6 +13,8 @@ const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
   const isMobile = useScreenSize(768);
+  const { setIsLoggedIn, setUserData} = useUserContext();
+  const [isJustRegistered, setIsJustRegistered] = useState(false);
   const [userData, setUserDataState] = useState({
     username: "",
     email: "",
@@ -35,60 +39,130 @@ const LoginPage = () => {
 
   const handleRegisterLink = () => {
     setIsLogin(!isLogin);
+    setIsJustRegistered(false);
     setErrors({
       username: "",
       email: "",
       password: "",
       confirmPassword: "",
     });
+    setUserDataState({
+      username: "",
+      email: "",
+      password: "",
+    });
+    setConfirmPassword("");
   };
-
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
+
+    const { username, email, password} = userData;
+    console.log(username, email, password);
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+    const confirmPasswordError = password !== confirmPassword ? "Passwords do not match" : "";
+
+    setErrors({
+      username: !username ? "Username is required" : "",
+      email: emailError?.error || "",
+      password: passwordError?.error || "",
+      confirmPassword: confirmPasswordError,
+    });
+
+    console.log(username);
+    console.log(errors);
+
+    if (!username || emailError?.error || passwordError?.error || confirmPasswordError) return;
+
+console.log(username, email, password);
+    try {
+      const response = await registerUser(username, email, password);
+      console.log(response);
+      if (response === "Success") {
+        setIsJustRegistered(true);
+        setIsLogin(true);
+      } 
+      else if(response === "Username already exists") {
+        setErrors({
+          ...errors,
+          username: "Username already exists",
+        })
+      } else if(response === "Email already exists") {
+        setErrors({
+          ...errors,
+          username:"",
+          email: "Email already exists",
+        })
+      }
+    } catch (error) {
+      console.error("Error during registration:", error);
+      alert("An error occurred while registering. Please try again later.");
+    }
+  };
+  
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    console.log(userData);
     const { email, password } = userData;
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-    let confirmPasswordError = "";
-    if(password!==confirmPassword){
-      confirmPasswordError = "Passwords do not match";
-    }else confirmPasswordError = "";
-    if (emailError || passwordError) {
-      setErrors({
-        email: emailError.error,
-        password: passwordError.error,
-        confirmPassword: confirmPasswordError,
-      });
-    } else {
-      navigate("/");
+    
+    setErrors({
+      email: emailError?.error || "",
+      password: passwordError?.error || "",
+    });
+
+    if (emailError.error || passwordError.error) return;
+
+    try {
+      console.log(email, password);
+      const response = await loginUser(email, password);
+      if (response.message === "Success") {
+        
+        const completeUserData = { ...response.user, userId: response.user._id };
+        setIsLoggedIn(true);
+        setUserData(completeUserData);
+        localStorage.setItem("userId", response.user._id);
+        localStorage.setItem("userData", JSON.stringify(completeUserData));
+        navigate("/");
+      } else {
+        if(response==="Invalid email"){
+          setErrors({
+            ...errors,
+            email: "Invalid email",
+            password: "",
+          })
+        } else if(response==="Invalid password"){
+          setErrors({
+            ...errors,
+            email: "",
+            password: "Invalid password",
+          })
+        }
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      alert("An error occurred while logging in. Please try again later.");
     }
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const { email, password } = userData;
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
-   
-    if (emailError || passwordError) {
-      setErrors({
-        email: emailError.error,
-        password: passwordError.error,
-      });
-    } else {
-      navigate("/");
-    }
-  };
 
   return (
     <section className={styles.loginPage}>
       <nav>
         <div
           className={styles.arrowBox}
+        >
+          <img
           role="button"
           onClick={() => window.history.back() || navigate("/")}
-        >
-          <img src="/arrow_back.png" alt="Back Arrow" />
+          src="/arrow_back.png" alt="Back Arrow" />
         </div>
+        {isJustRegistered && (
+          <p className={styles.justRegistered}>
+           Successfully Registered !!
+          </p>
+        )}
       </nav>
       <div className={styles.behindContainer}>
         {!isMobile && (
@@ -126,9 +200,11 @@ const LoginPage = () => {
                 <label htmlFor="">Username</label>
                 <input
                   type="text"
-                  name="name"
+                  name="username"
                   placeholder="Enter a username"
+                  onChange={handleChange}
                 />
+                <div className={styles.error}>{errors.username}</div>
               </div>
             )}
 

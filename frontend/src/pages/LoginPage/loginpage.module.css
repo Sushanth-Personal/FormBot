@@ -23,6 +23,18 @@
   z-index: 200;
 }
 
+.justRegistered{
+  position: absolute;
+  top: -7px;
+  left:150px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: #A5BF13;
+  margin-top: 13px;
+  margin-bottom: 13px;
+}
+
 .behindContainer {
   position: absolute;
   width: 100%;
@@ -124,9 +136,22 @@
   margin: 13px 0px;
   color: white;
   position: relative;
-  border:none;
+  border: none;
+  transition: box-shadow 150ms ease-in-out, transform 150ms ease-in-out;
 }
 
+/* Active (pressed-down) state */
+.loginButton:active {
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2), inset -2px -2px 4px rgba(255, 255, 255, 0.2);
+  transform: scale(0.98);
+  font-weight: 700;
+}
+
+.loginButton:hover {
+  filter:brightness(1.2); 
+  cursor: pointer;
+  font-weight: 700;
+}
 .loginButton div {
   border-radius: 50%;
   background-color: rgba(217, 217, 217, 1);
@@ -155,6 +180,8 @@
   text-decoration: none;
 }
 
+
+
 @media screen and (max-width: 1080px) {
   .behindContainer .leftImage {
     width: 25%;
@@ -173,7 +200,7 @@
     top: 120px;
   }
 
-  .loginPage nav{
+  .loginPage .arrowBox{
     display: none;
   }
 }

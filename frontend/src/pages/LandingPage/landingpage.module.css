@@ -7,6 +7,11 @@
   padding-top: 22px;
 }
 
+.userName{
+  color:#FFA400;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
 .navBar {
   height: 72px;
   display: flex;
