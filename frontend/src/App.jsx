@@ -7,11 +7,11 @@ import "./App.css";
 import { useState, useEffect } from "react";
 import LandingPage from "./pages/LandingPage/LandingPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
-
-// import Dashboard from "./pages/Dashboard/Dashboard";
+import ClipLoader from "react-spinners/ClipLoader";
+import Dashboard from "./pages/Dashboard/Dashboard";
 function App() {
-  // const baseURL = "http://localhost:5000";
-  const baseURL = "https://formbot-backend-scps.onrender.com";
+  const baseURL = "http://localhost:5000";
+  // const baseURL = "https://formbot-backend-scps.onrender.com";
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +38,7 @@ function App() {
       <div className="loading-screen">
         <h1>Form Bot</h1>
         <p>Waking up the app. Please wait...</p>
+        <ClipLoader color="#ffffff" size={50} />
       </div>
     );
   }
@@ -46,7 +47,7 @@ function App() {
       <Routes>
         {/* Define routes for the login and home pages */}
         <Route path="/" element={<LandingPage />} />
-        {/* <Route path="/dashboard/" element={<Dashboard />} /> */}
+        <Route path="/dashboard/" element={<Dashboard />} />
         <Route path="/login/" element={<LoginPage />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
