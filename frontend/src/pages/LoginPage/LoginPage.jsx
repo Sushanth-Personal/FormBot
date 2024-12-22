@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import useScreenSize from "../../customHooks/useScreenSize";
 import {useUserContext} from "../../Contexts/UserContext";
 import { loginUser, registerUser} from "../../api/api";
-
+import ClipLoader from "react-spinners/ClipLoader";
 import {
   validateEmail,
   validatePassword,
@@ -15,6 +15,7 @@ const LoginPage = () => {
   const isMobile = useScreenSize(768);
   const { setIsLoggedIn, setUserData} = useUserContext();
   const [isJustRegistered, setIsJustRegistered] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserDataState] = useState({
     username: "",
     email: "",
@@ -55,7 +56,7 @@ const LoginPage = () => {
   };
   const handleRegister = async (e) => {
     e.preventDefault();
-
+    setIsLoading(true);
     const { username, email, password} = userData;
     console.log(username, email, password);
     const emailError = validateEmail(email);
@@ -72,12 +73,16 @@ const LoginPage = () => {
     console.log(username);
     console.log(errors);
 
-    if (!username || emailError?.error || passwordError?.error || confirmPasswordError) return;
+    if (!username || emailError?.error || passwordError?.error || confirmPasswordError) {
+      setIsLoading(false);
+      return;
+    }
 
 console.log(username, email, password);
     try {
       const response = await registerUser(username, email, password);
-      console.log(response);
+      setIsLoading(false);
+
       if (response === "Success") {
         setIsJustRegistered(true);
         setIsLogin(true);
@@ -102,6 +107,7 @@ console.log(username, email, password);
   
   const handleLogin = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     console.log(userData);
     const { email, password } = userData;
     const emailError = validateEmail(email);
@@ -112,11 +118,15 @@ console.log(username, email, password);
       password: passwordError?.error || "",
     });
 
-    if (emailError.error || passwordError.error) return;
+    if (emailError.error || passwordError.error) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       console.log(email, password);
       const response = await loginUser(email, password);
+      setIsLoading(false);
       if (response.message === "Success") {
         
         const completeUserData = { ...response.user, userId: response.user._id };
@@ -248,13 +258,14 @@ console.log(username, email, password);
               onClick={handleLogin}
               className={styles.loginButton}
             >
-              Log In 
+              {isLoading? <ClipLoader color="white" size={25} />:"Log In"}
+             
             </button>):(
                   <button
                   onClick={handleRegister}
                   className={styles.loginButton}
                 >
-                  Sign Up
+                  {isLoading? <ClipLoader color="white" size={25} />:"Sign Up"}
                 </button>
             )}
           
