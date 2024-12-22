@@ -10,8 +10,15 @@ import LoginPage from "./pages/LoginPage/LoginPage";
 import ClipLoader from "react-spinners/ClipLoader";
 import Dashboard from "./pages/Dashboard/Dashboard";
 function App() {
-  const baseURL = "http://localhost:5000";
-  // const baseURL = "https://formbot-backend-scps.onrender.com";
+  let baseURL;
+
+  if(import.meta.env.VITE_API_STATUS === "DEVELOPMENT"){
+    baseURL = "http://localhost:5000";
+  }
+  
+  if(import.meta.env.VITE_API_STATUS === "PRODUCTION"){
+    baseURL = import.meta.env.VITE_API_BASE_URL;
+  }
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

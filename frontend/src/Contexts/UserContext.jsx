@@ -9,6 +9,7 @@ export const UserProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState({});
+  const [theme, setTheme] = useState("light");
   const value = useMemo(
     () => ({
       userId,
@@ -17,6 +18,8 @@ export const UserProvider = ({ children }) => {
       setIsLoggedIn,
       userData,
       setUserData,
+      theme,
+      setTheme
     }),
     [
       userId,
@@ -25,6 +28,8 @@ export const UserProvider = ({ children }) => {
       setIsLoggedIn,
       userData,
       setUserData,
+      theme,
+      setTheme
     ]
   );
 
