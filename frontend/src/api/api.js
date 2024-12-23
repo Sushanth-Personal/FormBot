@@ -139,6 +139,7 @@ export const fetchUserData = async (userId) => {
   try {
     const response = await api.get(`/protected/user/${userId}`);
     console.log("fetchUserresponse", response);
+    localStorage.setItem("forms", JSON.stringify(response.data.forms));
     return response.data.user;
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -177,4 +178,39 @@ export const deleteFolder = async (folderName) => {
     console.error("Error deleting folder:", error);
   }
 };
+
+export const createForm = async (formName,folderName) => {
+  try {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      return "UserId not found";
+    }
+    const response = await api.post(`/protected/form/${userId}`, {
+      formName,
+      folderName
+    });
+    console.log("createFormresponse", response);
+    return response.data.forms;
+  } catch (error) {
+    console.error("Error creating form:", error);
+  }
+}
+
+export const deleteForm = async (formName,folderName) => {
+  try {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      return "UserId not found";
+    }
+
+    console.log("formName", formName);
+    const response = await api.delete(`/protected/form/${userId}`, {
+      data: { formName, folderName },
+    });
+    console.log("deleteFormresponse", response);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting form:", error);
+  }
+}
 
