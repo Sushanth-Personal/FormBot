@@ -2,6 +2,7 @@ import styles from "./landingpage.module.css";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../../customHooks/useAuth";
 import { useUserContext } from "../../Contexts/UserContext";
+import { useEffect } from "react";
 const LandingPage = () => {
   useAuth();
   const navigate = useNavigate();
@@ -11,6 +12,10 @@ const LandingPage = () => {
       navigate("/login");
     }
   };
+
+  useEffect(() => {
+    console.log(userData);
+  }, [userData]);
 
 const handleSignOut = () => {
   localStorage.removeItem("accessToken");

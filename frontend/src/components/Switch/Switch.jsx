@@ -4,11 +4,11 @@ import styles from './Switch.module.css'; // Import the CSS module
 
 const Switch = () => {
   const { theme, setTheme } = useUserContext();
-  const [checked, setChecked] = useState(theme === 'light'); // Set initial state based on the current theme
+  const [checked, setChecked] = useState(theme === 'dark'); // Set initial state based on the current theme
 
   useEffect(() => {
     // Update the theme whenever it changes in the context
-    setChecked(theme === 'light');
+    setChecked(theme === 'dark');
   }, [theme]);
 
   const handleSwitchToggle = () => {

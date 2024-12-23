@@ -8,6 +8,7 @@ const useAuth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+
     const authenticateUser = async () => {
       try {
         const storedUserId = localStorage.getItem("userId");

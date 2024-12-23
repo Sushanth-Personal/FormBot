@@ -3,17 +3,15 @@ import { jwtDecode } from "jwt-decode"; // Ensure you're using the correct impor
 
 let baseURL;
 
-if(import.meta.env.VITE_API_STATUS === "DEVELOPMENT"){
+if (import.meta.env.VITE_API_STATUS === "DEVELOPMENT") {
   baseURL = "http://localhost:5000";
 }
 
-if(import.meta.env.VITE_API_STATUS === "PRODUCTION"){
+if (import.meta.env.VITE_API_STATUS === "PRODUCTION") {
   baseURL = import.meta.env.VITE_API_BASE_URL;
 }
 
-
-
-const api = axios.create({
+export const api = axios.create({
   baseURL: `${baseURL}`,
 });
 
@@ -21,7 +19,7 @@ api.interceptors.request.use((config) => {
   if (config.url.includes("/protected")) {
     const accessToken = localStorage.getItem("accessToken");
     console.log("accessToken Checking", accessToken);
-    if (!accessToken) { 
+    if (!accessToken) {
       window.location.href = "/login";
       return Promise.reject("No access token found");
     }
@@ -115,8 +113,8 @@ export const loginUser = async (email, password) => {
       "Error logging in:",
       error.response?.data || error.message
     );
-    
-    return error.response?.data.message || "Login failed" ;
+
+    return error.response?.data.message || "Login failed";
   }
 };
 
@@ -141,8 +139,42 @@ export const fetchUserData = async (userId) => {
   try {
     const response = await api.get(`/protected/user/${userId}`);
     console.log("fetchUserresponse", response);
-    return response.data;
+    return response.data.user;
   } catch (error) {
     console.error("Error fetching user data:", error);
   }
 };
+
+export const createFolder = async (folderName) => {
+  try {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      return "UserId not found";
+    }
+    const response = await api.post(`/protected/folder/${userId}`, {
+      folderName,
+    });
+    console.log("createFolderresponse", response);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating folder:", error);
+  }
+};
+
+export const deleteFolder = async (folderName) => {
+  try {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      return "UserId not found";
+    }
+    console.log("folderName", folderName);
+    const response = await api.delete(`/protected/folder/${userId}`, {
+      data: { folderName }, // Include folderName in the data property
+    });
+    console.log("deleteFolderresponse", response);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting folder:", error);
+  }
+};
+
