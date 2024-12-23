@@ -139,7 +139,7 @@ export const fetchUserData = async (userId) => {
   try {
     const response = await api.get(`/protected/user/${userId}`);
     console.log("fetchUserresponse", response);
-    localStorage.setItem("forms", JSON.stringify(response.data.forms));
+    localStorage.setItem("folderForms", JSON.stringify(response.data.folderForms));
     return response.data.user;
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -173,7 +173,7 @@ export const deleteFolder = async (folderName) => {
       data: { folderName }, // Include folderName in the data property
     });
     console.log("deleteFolderresponse", response);
-    return response.data;
+    return response.data.folders;
   } catch (error) {
     console.error("Error deleting folder:", error);
   }
@@ -190,8 +190,13 @@ export const createForm = async (formName,folderName) => {
       folderName
     });
     console.log("createFormresponse", response);
-    return response.data.forms;
+ 
+    return response.data.folderForms;
   } catch (error) {
+    console.log(error)
+    if(error.response.data.message === "Form already exists"){
+      return "Form already exists";
+    }
     console.error("Error creating form:", error);
   }
 }
@@ -208,7 +213,7 @@ export const deleteForm = async (formName,folderName) => {
       data: { formName, folderName },
     });
     console.log("deleteFormresponse", response);
-    return response.data;
+    return response.data.folderForms;
   } catch (error) {
     console.error("Error deleting form:", error);
   }

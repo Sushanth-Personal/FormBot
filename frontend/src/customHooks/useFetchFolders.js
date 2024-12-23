@@ -19,6 +19,8 @@ const useFetchFolders = () => {
         console.log("response", response);
         const { user, folders } = response.data;
         console.log("user and folders", user, folders);
+     
+    
         // Update user data in context
         setUserData(user);
 

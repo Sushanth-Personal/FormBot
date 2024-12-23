@@ -29,6 +29,7 @@ const formSchema = new mongoose.Schema({
   formName: {
     type: String,
     required: true,
+    unique: true,
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -45,5 +46,7 @@ const formSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+
 
 module.exports = mongoose.model('Form', formSchema);

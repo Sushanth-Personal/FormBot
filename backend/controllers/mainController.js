@@ -16,7 +16,7 @@ const getUser = async (req, res) => {
   }
 
   try {
-    // Fetch the user by ID, excluding 'cart' field
+    // Fetch the user by ID
     const user = await User.findById(userId);
 
     // If no user is found, return a 404 error
@@ -26,9 +26,18 @@ const getUser = async (req, res) => {
 
     // Fetch all folders associated with the userId
     const folders = await Folder.find({ userId }).select("name -_id"); // Assuming `Folder` model exists
-    const forms = await Form.find({ userId });
-    // Respond with the user data and folder names
-    res.status(200).json({ user, folders,forms });
+
+    // Initialize an object to hold folder-wise forms
+    const folderForms = {};
+
+    // Iterate through folders to fetch forms associated with each
+    for (const folder of folders) {
+      const forms = await Form.find({ userId, folderName: folder.name }).select("formName -_id");
+      folderForms[folder.name] = forms.map((form) => form.formName);
+    }
+    console.log(folderForms);
+    // Respond with the user data and structured folder-to-forms mapping
+    res.status(200).json({ user, folders: folders.map((f) => f.name), folderForms });
   } catch (error) {
     // Log the error for debugging purposes
     console.error("Error fetching user or folders:", error.message);
@@ -36,10 +45,11 @@ const getUser = async (req, res) => {
     // Handle server errors
     res.status(500).json({
       error:
-        "An unexpected error occurred while fetching the user or folders.",
+        "An unexpected error occurred while fetching the user, folders, or forms.",
     });
   }
 };
+
 
 const createFolder = async (req, res) => {
   const { folderName } = req.body;
@@ -60,12 +70,13 @@ const createFolder = async (req, res) => {
     await newFolder.save();
 
     // Retrieve all folders associated with the userId
-    const userFolders = await Folder.find({ userId }).select(
-      "name -_id"
-    ); // Only select folder names
+    const userFolders = await Folder.find({ userId }).select("name"); // Only select folder names
 
-    // Respond with all folder names
-    res.status(201).json(userFolders);
+    // Map to get an array of folder names
+    const folderNames = userFolders.map(folder => folder.name);
+
+    // Respond with the array of folder names
+    res.status(201).json(folderNames);
   } catch (error) {
     // Log the error for debugging
     console.error(
@@ -80,6 +91,7 @@ const createFolder = async (req, res) => {
     });
   }
 };
+
 
 const deleteFolder = async (req, res) => {
   const { folderName } = req.body;
@@ -109,14 +121,31 @@ const deleteFolder = async (req, res) => {
     if (!deletedFolder) {
       return res.status(404).json({ error: "Folder not found." });
     }
+    const formsByFolder = await Form.find({ userId }).select(
+      "formName folderName -_id"
+    );
 
-    // Retrieve all folders associated with the userId
-    const userFolders = await Folder.find({ userId }).select(
-      "name -_id"
-    ); // Only select folder
+    const folderForms = {};
+    formsByFolder.forEach((form) => {
+      if (!folderForms[form.folderName]) {
+        folderForms[form.folderName] = [];
+      }
+      folderForms[form.folderName].push(form.formName);
+    });
 
-    // Respond with all folder names
-    res.status(200).json(userFolders);
+    // Include folders that have no forms (empty folders)
+    const folders = await Folder.find({ userId }).select("name -_id");
+    const folderNames = folders.map((f) => f.name);
+
+    // Ensure every folder is represented, even if empty
+    folderNames.forEach((folderName) => {
+      if (!folderForms[folderName]) {
+        folderForms[folderName] = []; // Initialize empty array for folders without forms
+      }
+    });
+
+    // Respond with folders and folder-to-forms mapping
+    res.status(200).json({ folders: folderNames, folderForms });
   } catch (error) {
     // Log the error for debugging
     console.error(
@@ -136,14 +165,15 @@ const deleteFolder = async (req, res) => {
 // Create a new form
 const createForm = async (req, res) => {
   try {
-    const { formName,folderName } = req.body; // Extract data from the request body
+    const { formName, folderName } = req.body; // Extract data from the request body
     const { id } = req.params; // userId
-    console.log(formName,folderName)
+    console.log(formName, folderName);
+
     // Validate userId
     const userId = mongoose.Types.ObjectId.isValid(id)
       ? new mongoose.Types.ObjectId(id)
       : null;
-  
+
     if (!userId) {
       return res.status(400).json({ message: "Invalid userId format" });
     }
@@ -151,70 +181,106 @@ const createForm = async (req, res) => {
 
     // Create a new form linked to the folder and user
     const form = new Form({
-      formName: formName,
-      userId:userId, // Ensure the form is linked to the correct user
-      folderName:folderName
+      formName,
+      userId, // Ensure the form is linked to the correct user
+      folderName,
     });
+
     
     await form.save(); // Save the form
 
-    // Find all forms that belong to the same user and folder
-    const forms = await Form.find({ 
-      folderName:folderName, 
-      userId: userId // Ensure the forms belong to the correct user
+    // Retrieve all forms grouped by their folders
+    const formsByFolder = await Form.find({ userId }).select(
+      "formName folderName -_id"
+    );
+
+    const folderForms = {};
+    formsByFolder.forEach((form) => {
+      if (!folderForms[form.folderName]) {
+        folderForms[form.folderName] = [];
+      }
+      folderForms[form.folderName].push(form.formName);
     });
 
-    // Send back the forms
-    res.status(201).json({ message: 'Form created successfully!', forms });
+    // Retrieve all folder names associated with the user
+    const folders = await Folder.find({ userId }).select("name -_id");
+
+    // Respond with the folder names array and folder-to-forms mapping
+    res
+      .status(200)
+      .json({ folders: folders.map((f) => f.name), folderForms });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error creating form', error });
+    res.status(500).json({ message: "Error creating form", error });
   }
 };
 
 const deleteForm = async (req, res) => {
   try {
-    const { formName,folderName } = req.body; // Extract data from the request body
+    const { formName, folderName } = req.body; // Extract data from the request body
     const { id } = req.params; // userId
-    console.log(formName,folderName)
+
     // Validate userId
     const userId = mongoose.Types.ObjectId.isValid(id)
       ? new mongoose.Types.ObjectId(id)
       : null;
-  
+
     if (!userId) {
       return res.status(400).json({ message: "Invalid userId format" });
     }
-    // Delete the form associated with the userId
+
+    // Check if folder exists
+    const folderExists = await Folder.findOne({ userId, name: folderName });
+    if (!folderExists) {
+      return res.status(404).json({ error: "Folder not found." });
+    }
+
+    // Delete the specified form
     const deletedForm = await Form.findOneAndDelete({
-      formName: formName,
-      userId: userId,
-      folderName:folderName
+      userId,
+      folderName,
+      formName,
     });
 
     if (!deletedForm) {
       return res.status(404).json({ error: "Form not found." });
     }
 
-    // Retrieve all forms associated with the userId
-    const userForms = await Form.find({ userId });
-
-    // Respond with all form names
-    res.status(200).json(userForms);
-  } catch (error) {
-    // Log the error for debugging
-    console.error(
-      "Error deleting form or retrieving forms:",
-      error.message
+    // Fetch all forms and group them by folder
+    const formsByFolder = await Form.find({ userId }).select(
+      "formName folderName -_id"
     );
 
-    // Handle server errors
+    const folderForms = {};
+    formsByFolder.forEach((form) => {
+      if (!folderForms[form.folderName]) {
+        folderForms[form.folderName] = [];
+      }
+      folderForms[form.folderName].push(form.formName);
+    });
+
+    // Include folders that have no forms (empty folders)
+    const folders = await Folder.find({ userId }).select("name -_id");
+    const folderNames = folders.map((f) => f.name);
+
+    // Ensure every folder is represented, even if empty
+    folderNames.forEach((folderName) => {
+      if (!folderForms[folderName]) {
+        folderForms[folderName] = []; // Initialize empty array for folders without forms
+      }
+    });
+
+    // Respond with folders and folder-to-forms mapping
+    res.status(200).json({ folders: folderNames, folderForms });
+  } catch (error) {
+    console.error("Error deleting form or retrieving forms:", error.message);
     res.status(500).json({
-      error:
-        "An unexpected error occurred while processing the request.",
+      error: "An unexpected error occurred while processing the request.",
     });
   }
 };
+
+
 
 
 

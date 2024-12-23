@@ -22,14 +22,21 @@ const Dashboard = () => {
     useState(false); // Form delete modal
   const [formToDelete, setFormToDelete] = useState(""); // Form to delete
   const [formName, setFormName] = useState(""); // State for form name input
-  const { folders, setFolders } = useUserContext();
+  const { folders, setFolders} = useUserContext();
   const { theme, userData } = useUserContext();
   const [forms, setForms] = useState([]); // State to manage forms
   const [selectedFolder, setSelectedFolder] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+
+  useEffect(() => {
+    console.log(forms)
+  }, [forms]);
+
 
   /**
    * Toggles the visibility of the dropdown menu
@@ -44,13 +51,18 @@ const Dashboard = () => {
   };
 
   const handleFolderClick = (folderName) => {
-    setSelectedFolder(folderName);
     console.log("Selected folder:", folderName);
-    const allForms = JSON.parse(localStorage.getItem("forms")) || [];
-    setForms(allForms.filter((form) => form.folderName === folderName));
+    setSelectedFolder(folderName);
+    const allForms = JSON.parse(localStorage.getItem("folderForms")) || [];
+    if(allForms[folderName]) {
+      setForms(allForms[folderName]);
+    }else{
+      setForms([]);
+    }
   };
 
   const handleCloseModal = () => {
+    setError("");
     setIsFolderModalOpen(false); // Close the modal
     setFolderName(""); // Reset folder name
   };
@@ -59,12 +71,22 @@ const Dashboard = () => {
     
     if (folderName.trim()) {
       try {
+        console.log(folders,folderName);
+
+        if(folders.some((folder)=>folder===folderName)) {
+          setError("Folder with this name already exists");
+          return;
+        }
+       
+        
         // Call the createFolder function and pass the folderName
         const currentFolderData = await createFolder(folderName);
         if (currentFolderData === "UserId not found") {
           navigate("/login");
           return;
         }
+
+        console.log(currentFolderData);
         // Update the folder list with the new folder data
         setFolders(currentFolderData);
 
@@ -102,6 +124,8 @@ const Dashboard = () => {
         navigate("/login");
         return;
       }
+
+      console.log(currentFolderData);
       setFolders(currentFolderData);
       setIsDeleteModalOpen(false);
       setFolderToDelete("");
@@ -121,20 +145,33 @@ const Dashboard = () => {
   const handleCloseFormModal = () => {
     setIsFormModalOpen(false);
     setFormName("");
+    setError("");
   };
 
   const handleFormDone = async() => {
-    console.log(selectedFolder);
+
     if (selectedFolder.trim()) {
       try {
+        const folderForms = JSON.parse(localStorage.getItem("folderForms")) || [];
+        if (Object.values(folderForms).some((forms) => forms.includes(formName))) {
+          setError("Form with this name already exists");
+          return;
+        }
+        
         // Call the createFolder function and pass the folderName
         const currentFormData = await createForm(formName,selectedFolder);
+
         if (currentFormData === "UserId not found") {
           navigate("/login");
           return;
         }
+
+        if(currentFormData === "Form already exists") {
+          setError("Form already exists");
+          return;
+        }
         // Update the folder list with the new folder data
-        setForms(currentFormData);
+        setForms(currentFormData[selectedFolder]);
 
         console.log(
           "Form created successfully:",
@@ -149,7 +186,8 @@ const Dashboard = () => {
         alert("Failed to create form. Please try again.");
       }
     } else {
-      alert("Please enter a form name");
+      alert("Please select a folder");
+      handleCloseFormModal();
     }
   };
 
@@ -169,15 +207,27 @@ const Dashboard = () => {
 
       // Make an API call to delete the form, passing formName and folderName
       const currentFormData = await deleteForm(formToDelete, selectedFolder); 
-      
+      console.log("currentFormData", currentFormData);
       // Check if the form deletion was successful
       if (currentFormData === "Form not found") {
         alert("Form not found. Please try again.");
         return;
       }
+
   
+      if(Object.keys(currentFormData).length === 0) {
+        console.log("currentFormData", currentFormData);
+        setForms([]);
+        setIsFormDeleteModalOpen(false);
+        setFormToDelete(""); // Reset form name state
+        return;
+      }
+
+
+
+      console.log(currentFormData[selectedFolder]);
       // If the form is successfully deleted, update the form list
-      setForms(currentFormData); // Assuming `setForms` updates the list of forms
+      setForms(currentFormData[selectedFolder]); // Assuming `setForms` updates the list of forms
       
       // Close the modal and reset the form state
       setIsFormDeleteModalOpen(false);
@@ -262,15 +312,17 @@ const Dashboard = () => {
                 Create a folder
               </li>
               {folders.map((folder, index) => (
+                
                 <li
-                  onClick={() => handleFolderClick(folder.name)}
-                  className={folder.name === selectedFolder ? styles.active : ''}
+          
+                  onClick={() => handleFolderClick(folder)}
+                  className={folder=== selectedFolder ? styles.active : ''}
                   key={index}
                 >
-                  {folder.name}
+                  {folder}
                   <img
                     role="button"
-                    onClick={() => confirmDeleteFolder(folder.name)}
+                    onClick={() => confirmDeleteFolder(folder)}
                     className={styles.deleteFolder}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734865860/delete_obpnmw.png"
                     alt="delete folder"
@@ -288,12 +340,13 @@ const Dashboard = () => {
                 />
                 <h3>Create a typebot</h3>
               </li>
-              {forms.map((form, index) => (
+            
+              {selectedFolder && forms.map((form, index) => (
                 <li key={index}>
-                  {form.formName}
+                  {form}
                   <img
                     role="button"
-                    onClick={() => confirmDeleteForm(form.formName)}
+                    onClick={() => confirmDeleteForm(form)}
                     className={styles.deleteButton}
                     src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
                     alt="delete"
@@ -317,19 +370,24 @@ const Dashboard = () => {
               placeholder="Enter folder name"
               className={styles.modalInput}
             />
+            <p className={styles.error}>{error}</p>
             <div className={styles.modalActions}>
-              <button
-                onClick={handleFolderDone}
-                className={styles.doneButton}
-              >
-                Done
-              </button>
-              <button
-                onClick={handleCloseModal}
-                className={styles.cancelButton}
-              >
-                Cancel
-              </button>
+              <div className = {styles.leftSide}>
+                <button
+                  onClick={handleFolderDone}
+                  className={styles.doneButton}
+                >
+                  Done
+                </button>
+              </div>
+              <div className = {styles.rightSide}>
+                <button
+                  onClick={handleCloseModal}
+                  className={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -368,19 +426,24 @@ const Dashboard = () => {
               placeholder="Enter form name"
               className={styles.modalInput}
             />
+         <p className={styles.error}>{error}</p>
             <div className={styles.modalActions}>
-              <button
-                onClick={handleFormDone}
-                className={styles.doneButton}
-              >
-                Done
-              </button>
-              <button
-                onClick={handleCloseFormModal}
-                className={styles.cancelButton}
-              >
-                Cancel
-              </button>
+              <div className = {styles.leftSide}>
+                <button
+                  onClick={handleFormDone}
+                  className={styles.doneButton}
+                >
+                  Done
+                </button>
+              </div>
+              <div className = {styles.rightSide}>
+                <button
+                  onClick={handleCloseFormModal}
+                  className={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

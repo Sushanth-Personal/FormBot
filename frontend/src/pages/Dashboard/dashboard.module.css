@@ -422,7 +422,6 @@
   background-color: rgba(31, 31, 35, 1);
   color:rgba(161, 161, 161, 0.31);
   border-radius: 12px;
-  margin-bottom: 25px;
   font-family: 'Open Sans', sans-serif;
   font-weight: 600;
   font-size: 2rem;
@@ -437,6 +436,15 @@
   justify-content: space-between;
   width: 100%;
 
+}
+
+.leftSide{
+  flex:1;
+  border-right: 1px solid white;
+}
+
+.rightSide{
+  flex:1;
 }
 
 .doneButton,
@@ -456,7 +464,6 @@
 
 .doneButton {
   color: white;
-  border-right: 1px solid white;
 }
 
 .doneButton:hover {
@@ -584,4 +591,12 @@
   .dropdown li img {
     margin-left: 5px;
   }
+}
+
+
+.error{
+  color: red;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.8rem;
+  height: 25px;
 }
