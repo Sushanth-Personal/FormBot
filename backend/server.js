@@ -20,7 +20,7 @@ app.use('/protected', authenticateToken);
 app.use('/protected',Routes);
 app.use('/auth', authRoutes);
 app.use('/', Routes);
-
+app.use('/api', Routes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -9,6 +9,7 @@ import LandingPage from "./pages/LandingPage/LandingPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import ClipLoader from "react-spinners/ClipLoader";
 import Dashboard from "./pages/Dashboard/Dashboard";
+import FormEditor from "./pages/FormEditor/FormEditor";
 function App() {
   let baseURL;
 
@@ -56,6 +57,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard/" element={<Dashboard />} />
         <Route path="/login/" element={<LoginPage />} />
+        <Route path="/editor/" element={<FormEditor />} />
         <Route path="*" element={<LandingPage />} />
       </Routes>
     </Router>

@@ -12,6 +12,8 @@ export const UserProvider = ({ children }) => {
   const [theme, setTheme] = useState("dark");
   const [folders, setFolders] = useState([]);
   const [allForms, setAllForms] = useState({});
+  const [selectedForm, setSelectedForm] = useState(null);
+  const [selectedFolder, setSelectedFolder] = useState(null);
   const value = useMemo(
     () => ({
       userId,
@@ -25,7 +27,11 @@ export const UserProvider = ({ children }) => {
       folders,
       setFolders,
       allForms,
-      setAllForms
+      setAllForms,
+      selectedForm,
+      setSelectedForm,
+      selectedFolder,
+      setSelectedFolder
     }),
     [
       userId,
@@ -39,7 +45,11 @@ export const UserProvider = ({ children }) => {
       folders,
       setFolders,
       allForms,
-      setAllForms
+      setAllForms,
+      selectedForm,
+      setSelectedForm,
+      selectedFolder,
+      setSelectedFolder
     ]
   );
 

@@ -3,7 +3,12 @@ import styles from "./dashboard.module.css";
 import Switch from "../../components/Switch/Switch";
 import { useUserContext } from "../../Contexts/UserContext";
 import useAuth from "../../customHooks/useAuth";
-import { createFolder, deleteFolder, createForm, deleteForm } from "../../api/api";
+import {
+  createFolder,
+  deleteFolder,
+  createForm,
+  deleteForm,
+} from "../../api/api";
 import useFetchFolders from "../../customHooks/useFetchFolders";
 import { useNavigate } from "react-router-dom";
 
@@ -22,21 +27,18 @@ const Dashboard = () => {
     useState(false); // Form delete modal
   const [formToDelete, setFormToDelete] = useState(""); // Form to delete
   const [formName, setFormName] = useState(""); // State for form name input
-  const { folders, setFolders} = useUserContext();
+  const { folders, setFolders, setSelectedForm,selectedFolder,setSelectedFolder } = useUserContext();
   const { theme, userData } = useUserContext();
   const [forms, setForms] = useState([]); // State to manage forms
-  const [selectedFolder, setSelectedFolder] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-
   useEffect(() => {
-    console.log(forms)
+    console.log(forms);
   }, [forms]);
-
 
   /**
    * Toggles the visibility of the dropdown menu
@@ -45,7 +47,6 @@ const Dashboard = () => {
     setIsDropdownVisible((prev) => !prev);
   };
 
-
   const handleCreateFolderClick = () => {
     setIsFolderModalOpen(true); // Open the modal
   };
@@ -53,10 +54,11 @@ const Dashboard = () => {
   const handleFolderClick = (folderName) => {
     console.log("Selected folder:", folderName);
     setSelectedFolder(folderName);
-    const allForms = JSON.parse(localStorage.getItem("folderForms")) || [];
-    if(allForms[folderName]) {
+    const allForms =
+      JSON.parse(localStorage.getItem("folderForms")) || [];
+    if (allForms[folderName]) {
       setForms(allForms[folderName]);
-    }else{
+    } else {
       setForms([]);
     }
   };
@@ -68,17 +70,15 @@ const Dashboard = () => {
   };
 
   const handleFolderDone = async () => {
-    
     if (folderName.trim()) {
       try {
-        console.log(folders,folderName);
+        console.log(folders, folderName);
 
-        if(folders.some((folder)=>folder===folderName)) {
+        if (folders.some((folder) => folder === folderName)) {
           setError("Folder with this name already exists");
           return;
         }
-       
-        
+
         // Call the createFolder function and pass the folderName
         const currentFolderData = await createFolder(folderName);
         if (currentFolderData === "UserId not found") {
@@ -148,35 +148,39 @@ const Dashboard = () => {
     setError("");
   };
 
-  const handleFormDone = async() => {
-
+  const handleFormDone = async () => {
     if (selectedFolder.trim()) {
       try {
-        const folderForms = JSON.parse(localStorage.getItem("folderForms")) || [];
-        if (Object.values(folderForms).some((forms) => forms.includes(formName))) {
+        const folderForms =
+          JSON.parse(localStorage.getItem("folderForms")) || [];
+        if (
+          Object.values(folderForms).some((forms) =>
+            forms.includes(formName)
+          )
+        ) {
           setError("Form with this name already exists");
           return;
         }
-        
+
         // Call the createFolder function and pass the folderName
-        const currentFormData = await createForm(formName,selectedFolder);
+        const currentFormData = await createForm(
+          formName,
+          selectedFolder
+        );
 
         if (currentFormData === "UserId not found") {
           navigate("/login");
           return;
         }
 
-        if(currentFormData === "Form already exists") {
+        if (currentFormData === "Form already exists") {
           setError("Form already exists");
           return;
         }
         // Update the folder list with the new folder data
         setForms(currentFormData[selectedFolder]);
 
-        console.log(
-          "Form created successfully:",
-          currentFormData
-        );
+        console.log("Form created successfully:", currentFormData);
 
         // Close the modal after successful creation
         handleCloseFormModal();
@@ -192,7 +196,7 @@ const Dashboard = () => {
   };
 
   const confirmDeleteForm = (formName) => {
-    console.log(formName)
+    console.log(formName);
     setFormToDelete(formName);
     setIsFormDeleteModalOpen(true);
   };
@@ -204,9 +208,11 @@ const Dashboard = () => {
 
   const handleDeleteForm = async () => {
     try {
-
       // Make an API call to delete the form, passing formName and folderName
-      const currentFormData = await deleteForm(formToDelete, selectedFolder); 
+      const currentFormData = await deleteForm(
+        formToDelete,
+        selectedFolder
+      );
       console.log("currentFormData", currentFormData);
       // Check if the form deletion was successful
       if (currentFormData === "Form not found") {
@@ -214,8 +220,7 @@ const Dashboard = () => {
         return;
       }
 
-  
-      if(Object.keys(currentFormData).length === 0) {
+      if (Object.keys(currentFormData).length === 0) {
         console.log("currentFormData", currentFormData);
         setForms([]);
         setIsFormDeleteModalOpen(false);
@@ -223,22 +228,23 @@ const Dashboard = () => {
         return;
       }
 
-
-
       console.log(currentFormData[selectedFolder]);
       // If the form is successfully deleted, update the form list
       setForms(currentFormData[selectedFolder]); // Assuming `setForms` updates the list of forms
-      
+
       // Close the modal and reset the form state
       setIsFormDeleteModalOpen(false);
       setFormToDelete(""); // Reset form name state
-  
     } catch (error) {
       console.error("Error deleting form:", error);
       alert("Failed to delete form. Please try again.");
     }
   };
-  
+
+  const handleFormClick = (formName) => {
+    setSelectedForm(formName);
+    navigate("/editor");
+  };
 
   return (
     <section className={styles.dashboard}>
@@ -312,11 +318,11 @@ const Dashboard = () => {
                 Create a folder
               </li>
               {folders.map((folder, index) => (
-                
                 <li
-          
                   onClick={() => handleFolderClick(folder)}
-                  className={folder=== selectedFolder ? styles.active : ''}
+                  className={
+                    folder === selectedFolder ? styles.active : ""
+                  }
                   key={index}
                 >
                   {folder}
@@ -340,19 +346,23 @@ const Dashboard = () => {
                 />
                 <h3>Create a typebot</h3>
               </li>
-            
-              {selectedFolder && forms.map((form, index) => (
-                <li key={index}>
-                  {form}
-                  <img
-                    role="button"
-                    onClick={() => confirmDeleteForm(form)}
-                    className={styles.deleteButton}
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
-                    alt="delete"
-                  />
-                </li>
-              ))}
+
+              {selectedFolder &&
+                forms.map((form, index) => (
+                  <li
+                    onClick={() => handleFormClick(form)}
+                    key={index}
+                  >
+                    {form}
+                    <img
+                      role="button"
+                      onClick={() => confirmDeleteForm(form)}
+                      className={styles.deleteButton}
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
+                      alt="delete"
+                    />
+                  </li>
+                ))}
             </ul>
           </div>
         </div>
@@ -372,7 +382,7 @@ const Dashboard = () => {
             />
             <p className={styles.error}>{error}</p>
             <div className={styles.modalActions}>
-              <div className = {styles.leftSide}>
+              <div className={styles.leftSide}>
                 <button
                   onClick={handleFolderDone}
                   className={styles.doneButton}
@@ -380,7 +390,7 @@ const Dashboard = () => {
                   Done
                 </button>
               </div>
-              <div className = {styles.rightSide}>
+              <div className={styles.rightSide}>
                 <button
                   onClick={handleCloseModal}
                   className={styles.cancelButton}
@@ -426,9 +436,9 @@ const Dashboard = () => {
               placeholder="Enter form name"
               className={styles.modalInput}
             />
-         <p className={styles.error}>{error}</p>
+            <p className={styles.error}>{error}</p>
             <div className={styles.modalActions}>
-              <div className = {styles.leftSide}>
+              <div className={styles.leftSide}>
                 <button
                   onClick={handleFormDone}
                   className={styles.doneButton}
@@ -436,7 +446,7 @@ const Dashboard = () => {
                   Done
                 </button>
               </div>
-              <div className = {styles.rightSide}>
+              <div className={styles.rightSide}>
                 <button
                   onClick={handleCloseFormModal}
                   className={styles.cancelButton}

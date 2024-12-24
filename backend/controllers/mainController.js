@@ -281,9 +281,58 @@ const deleteForm = async (req, res) => {
 };
 
 
+const updateFormContent = async (req, res) => {
+  try {
+    console.log("Reaching updateFormContent");
+
+    const { id } = req.params; // userId
+    console.log(id);
+
+    // Validate userId
+    const userId = mongoose.Types.ObjectId.isValid(id)
+      ? new mongoose.Types.ObjectId(id)
+      : null;
+
+    if (!userId) {
+      return res.status(400).json({ message: "Invalid userId format" });
+    }
+
+    // Destructure data from the request body
+    const { formName, folderName, elements } = req.body;
+    console.log(formName, folderName, elements);
+
+    // Check if all required fields are present
+    if (!formName || !folderName || !elements) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Find the existing form by formName and userId
+    const existingForm = await Form.findOne({ formName, userId });
+
+    if (!existingForm) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    // Update the form fields
+    existingForm.folderName = folderName;
+    existingForm.elements = elements;
+
+    // Save the updated form
+    await existingForm.save();
+
+    // Send success response
+    res.status(200).json({ message: 'Form updated successfully', form: existingForm });
+  } catch (error) {
+    console.error('Error updating form:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
 
 
 
 
 
-module.exports = { getUser, createFolder, deleteFolder, createForm, deleteForm };
+
+
+
+module.exports = { getUser, createFolder, deleteFolder, createForm, deleteForm, updateFormContent };
