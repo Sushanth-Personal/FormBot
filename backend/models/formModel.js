@@ -5,6 +5,10 @@ const formElementSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  id:{
+    type: String,
+    required: true,
+  },
   content: {
     type: String, // For text, image URL, or placeholder text for input fields
     required: function () {

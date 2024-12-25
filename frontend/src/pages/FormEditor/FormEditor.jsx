@@ -26,14 +26,7 @@ const FormEditor = () => {
   const [isResponseClicked, setIsResponseClicked] = useState(false);
   const [error, setError] = useState("Required field");
   const [selectedTool, setSelectedTool] = useState(null);
-  const [flowButtons, setFlowButtons] = useState([
-    {
-      buttonType: "StartButton",
-      id: `StartButton-${Date.now()}`,
-      content: "",
-      order: 0,
-    },
-  ]);
+ 
 
   const [bubbleData, setBubbleData] = useState({
     TextBubble: "",
@@ -125,10 +118,20 @@ const FormEditor = () => {
 
   // Handle delete button for a flow button
   const handleDeleteFlowButton = (id) => {
-    setFlowButtons((prevButtons) =>
-      prevButtons.filter((button) => button._id !== id)
-    );
+    console.log("id", id);
+    // Step 1: Filter out the button being deleted
+    const updatedFlowData = flowData.filter((button) => button.id !== id);
+  console.log(updatedFlowData);
+    // Step 2: Reassign the order to the remaining buttons (1, 2, 3, ...)
+    const updatedFlowDataWithOrder = updatedFlowData.map((button, index) => ({
+      ...button,
+      order: index + 1, // Ensure order starts from 1
+    }));
+  
+    // Step 3: Update the flow data with the new order
+    setFlowData(updatedFlowDataWithOrder);
   };
+  
 
   const handleInputChange = (e, type) => {
     setBubbleData((prevData) => ({
@@ -139,9 +142,6 @@ const FormEditor = () => {
 
   const handleSave = () => {
     // Ensure StartButton with order: 1 exists
-    
-
-   
 
     // Prepare the payload
     const payload = flowData
@@ -164,9 +164,10 @@ const FormEditor = () => {
       )
       .map((button) => ({
         buttonType: button.buttonType,
+        id: button.id,
         order: flowData.findIndex(
           (flowButton) => flowButton.id === button.id
-        ), // Ensure proper order
+        )+1, // Ensure proper order
         content: bubbleData[button.buttonType] || "", // Ensure content is properly assigned
       }));
 
@@ -395,61 +396,80 @@ const FormEditor = () => {
                 />
                 <h1>Start</h1>
               </div>
-              {flowData?.map?.((button, index) => (
-    button.buttonType !== "StartButton" && (
-      <div
-        key={button._id || index}
-        className={`${styles.flowButton} ${
-          ["TextBubble", "Image", "Video", "Gif"].includes(button.buttonType)
-            ? styles.bubble
-            : ""
-        } ${
-          button.buttonType === "StartButton" ? styles.start : ""
-        }`}
-        style={{ order: index + 1 }}  // Ensure StartButton stays at the top
-      >
-        {button.buttonType !== "StartButton" && (
-          <div className={styles.ellipse}></div>
-        )}
-        {button.buttonType !== "StartButton" && (
-          <img
-            className={styles.deleteIcon}
-            onClick={() => handleDeleteFlowButton(button._id)}
-            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
-            alt="delete"
-          />
-        )}
-        <h1>
-          {`${label[button.buttonType]} ${index+1}`}
-        </h1>
-        {["TextBubble", "Image", "Video", "Gif"].includes(button.buttonType) && (
-          <input
-            type="text"
-            placeholder={
-              button.buttonType === "TextBubble"
-                ? "Enter text"
-                : "Click to add link"
-            }
-            className={styles.inputField}
-            value={bubbleData?.[button.buttonType] || ""}
-            onChange={(e) => handleInputChange(e, button.buttonType)}
-          />
-        )}
-        {[
-          "TextInput",
-          "Number",
-          "Email",
-          "Phone",
-          "Date",
-          "Time",
-          "Rating",
-          "Button",
-        ].includes(button.buttonType) && (
-          <p>{inputTexts[button.buttonType]}</p>
-        )}
-      </div>
-    )
-  ))}
+              {flowData?.map?.(
+                (button, index) =>
+                  button.buttonType !== "StartButton" && (
+                    <div
+                      key={button._id || index}
+                      className={`${styles.flowButton} ${
+                        [
+                          "TextBubble",
+                          "Image",
+                          "Video",
+                          "Gif",
+                        ].includes(button.buttonType)
+                          ? styles.bubble
+                          : ""
+                      } ${
+                        button.buttonType === "StartButton"
+                          ? styles.start
+                          : ""
+                      }`}
+                      style={{ order: index + 1 }} // Ensure StartButton stays at the top
+                    >
+                      {button.buttonType !== "StartButton" && (
+                        <div className={styles.ellipse}></div>
+                      )}
+                      {button.buttonType !== "StartButton" && (
+                        <img
+                          className={styles.deleteIcon}
+                          onClick={() =>
+                            handleDeleteFlowButton(button.id || index)
+                          }
+                          src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
+                          alt="delete"
+                        />
+                      )}
+                      <h1>
+                        {`${label[button.buttonType]} ${index + 1}`}
+                      </h1>
+                      {[
+                        "TextBubble",
+                        "Image",
+                        "Video",
+                        "Gif",
+                      ].includes(button.buttonType) && (
+                        <input
+                          type="text"
+                          placeholder={
+                            button.buttonType === "TextBubble"
+                              ? "Enter text"
+                              : "Click to add link"
+                          }
+                          className={styles.inputField}
+                          value={
+                            bubbleData?.[button.buttonType] || ""
+                          }
+                          onChange={(e) =>
+                            handleInputChange(e, button.buttonType)
+                          }
+                        />
+                      )}
+                      {[
+                        "TextInput",
+                        "Number",
+                        "Email",
+                        "Phone",
+                        "Date",
+                        "Time",
+                        "Rating",
+                        "Button",
+                      ].includes(button.buttonType) && (
+                        <p>{inputTexts[button.buttonType]}</p>
+                      )}
+                    </div>
+                  )
+              )}
             </div>
           </div>
         </div>
