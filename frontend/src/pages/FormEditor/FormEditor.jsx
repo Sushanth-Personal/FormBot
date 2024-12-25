@@ -6,6 +6,7 @@ import Switch from "../../components/Switch/Switch";
 import { api } from "../../api/api";
 import useAuth from "../../customHooks/useAuth";
 import useFetchFlowData from "../../customHooks/useFetchFlowData";
+import ResponseDisplay from "../../components/ResponseDisplay/ResponseDisplay";
 const FormEditor = () => {
   useAuth();
   useFetchFlowData();
@@ -22,18 +23,31 @@ const FormEditor = () => {
   } = useUserContext();
   const [isInputSelected, setIsInputSelected] = useState(false);
   const [currentForm, setCurrentForm] = useState(selectedForm);
-  const [isFlowClicked, setIsFlowClicked] = useState(false);
+  const [isFlowClicked, setIsFlowClicked] = useState(true);
   const [isResponseClicked, setIsResponseClicked] = useState(false);
   const [error, setError] = useState("Required field");
   const [selectedTool, setSelectedTool] = useState(null);
- 
-
+  const count = {
+    TextInput: 0,
+    Number: 0,
+    Email: 0,
+    Phone: 0,
+    Date: 0,
+    Rating: 0,
+    Time: 0,
+    TextBubble: 0,
+    Image: 0,
+    Video: 0,
+    Gif: 0,
+    Button: 0,
+  };
   const [bubbleData, setBubbleData] = useState({
     TextBubble: "",
     Image: "",
     Video: "",
     Gif: "",
   });
+
   const inputTexts = {
     TextInput: "Hint : User will input a text on his form",
     Number: "Hint : User will input a number on his form",
@@ -57,6 +71,11 @@ const FormEditor = () => {
     Gif: "GIF",
     Time: "Input Time",
     Button: "Button",
+  };
+
+  const getCount = (type) => {
+    count[type] += 1;
+    return count[type];
   };
 
   const handleFlowClick = () => {
@@ -120,29 +139,42 @@ const FormEditor = () => {
   const handleDeleteFlowButton = (id) => {
     console.log("id", id);
     // Step 1: Filter out the button being deleted
-    const updatedFlowData = flowData.filter((button) => button.id !== id);
-  console.log(updatedFlowData);
+    const updatedFlowData = flowData.filter(
+      (button) => button.id !== id
+    );
+    console.log(updatedFlowData);
     // Step 2: Reassign the order to the remaining buttons (1, 2, 3, ...)
-    const updatedFlowDataWithOrder = updatedFlowData.map((button, index) => ({
-      ...button,
-      order: index + 1, // Ensure order starts from 1
-    }));
-  
+    const updatedFlowDataWithOrder = updatedFlowData.map(
+      (button, index) => ({
+        ...button,
+        order: index + 1, // Ensure order starts from 1
+      })
+    );
+
     // Step 3: Update the flow data with the new order
     setFlowData(updatedFlowDataWithOrder);
   };
-  
 
-  const handleInputChange = (e, type) => {
-    setBubbleData((prevData) => ({
-      ...prevData,
-      [type]: e.target.value,
-    }));
+  // Handle input change for specific button type
+  const handleInputChange = (e, buttonType, buttonId) => {
+    const { value } = e.target;
+    console.log(value);
+    // Update the content of the flowData for the specific button
+    setFlowData((prevFlowData) =>
+      prevFlowData.map((button) =>
+        button.id === buttonId
+          ? {
+              ...button,
+              content: value, // Update content with the new input value
+            }
+          : button
+      )
+    );
   };
 
   const handleSave = () => {
     // Ensure StartButton with order: 1 exists
-
+    console.log(flowData);
     // Prepare the payload
     const payload = flowData
       .filter((button) =>
@@ -162,14 +194,22 @@ const FormEditor = () => {
           "StartButton",
         ].includes(button.buttonType)
       )
-      .map((button) => ({
-        buttonType: button.buttonType,
-        id: button.id,
-        order: flowData.findIndex(
-          (flowButton) => flowButton.id === button.id
-        )+1, // Ensure proper order
-        content: bubbleData[button.buttonType] || "", // Ensure content is properly assigned
-      }));
+      .map((button) => {
+        const content =
+          button.buttonType !== "StartButton"
+            ? button.content || "" // Ensure content is properly assigned
+            : ""; // StartButton may not have content, you can adjust as needed
+        console.log(flowData);
+        return {
+          buttonType: button.buttonType,
+          id: button.id,
+          order:
+            flowData.findIndex(
+              (flowButton) => flowButton.id === button.id
+            ) + 1, // Ensure proper order
+          content: content, // Add content to the payload
+        };
+      });
 
     console.log("payload", payload, selectedFolder, selectedForm);
 
@@ -178,13 +218,15 @@ const FormEditor = () => {
       .put(`/protected/form/${userData._id}`, {
         formName: selectedForm,
         folderName: selectedFolder,
-        elements: payload,
+        elements: payload, // Send the updated flow data to backend
       })
       .then((response) => {
         console.log("Data saved successfully", response.data);
+        // Optionally, show success message, navigate, etc.
       })
       .catch((error) => {
         console.error("Error saving data", error);
+        // Optionally, show error message
       });
   };
 
@@ -248,231 +290,247 @@ const FormEditor = () => {
         </div>
       </nav>
       <main className={styles.main}>
-        <div className={styles.toolBox}>
-          <div className={styles.content}>
-            <div className={styles.bubbles}>
-              <h1>Bubbles</h1>
-              <div className={styles.bubbleContent}>
-                <button
-                  onClick={() =>
-                    handleToolBoxButtonClick("TextBubble")
-                  }
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734976788/Vector_tywr4q.svg"
-                    alt="doc icon"
-                  />
-                  <p>Text</p>
-                </button>
-                <button
-                  onClick={() => {
-                    handleToolBoxButtonClick("Image");
-                  }}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977696/SVG_5_zbkxik.png"
-                    alt="image icon"
-                  />
-                  <p>Image</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Video")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977709/SVG_1_ea3rsy.svg"
-                    alt="Video icon"
-                  />
-                  <p>Video</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Gif")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977701/Container_3_bm6fqv.png"
-                    alt="gif icon"
-                  />
-                  <p>GIF</p>
-                </button>
+        {isFlowClicked && (
+          <div className={styles.toolBox}>
+            <div className={styles.content}>
+              <div className={styles.bubbles}>
+                <h1>Bubbles</h1>
+                <div className={styles.bubbleContent}>
+                  <button
+                    onClick={() =>
+                      handleToolBoxButtonClick("TextBubble")
+                    }
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734976788/Vector_tywr4q.svg"
+                      alt="doc icon"
+                    />
+                    <p>Text</p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleToolBoxButtonClick("Image");
+                    }}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977696/SVG_5_zbkxik.png"
+                      alt="image icon"
+                    />
+                    <p>Image</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Video")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977709/SVG_1_ea3rsy.svg"
+                      alt="Video icon"
+                    />
+                    <p>Video</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Gif")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977701/Container_3_bm6fqv.png"
+                      alt="gif icon"
+                    />
+                    <p>GIF</p>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className={styles.bubbles}>
-              <h1>Inputs</h1>
-              <div className={styles.bubbleContent}>
-                <button
-                  onClick={() =>
-                    handleToolBoxButtonClick("TextInput")
-                  }
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977877/SVG_6_x5vxny.png"
-                    alt="doc icon"
-                  />
-                  <p>Text</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Number")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977951/SVG_3_krlgib.png"
-                    alt="number icon"
-                  />
-                  <p>Number</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Email")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977951/SVG_3_krlgib.png"
-                    alt="email icon"
-                  />
-                  <p>Email</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Phone")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977958/SVG_4_rakedz.png"
-                    alt="phone icon"
-                  />
-                  <p>Phone</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Date")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977961/SVG_5_o1b4ja.png"
-                    alt="date icon"
-                  />
-                  <p>Date</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Time")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977958/SVG_4_rakedz.png"
-                    alt="time icon"
-                  />
-                  <p>Time</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Rating")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977965/SVG_7_snsvsb.png"
-                    alt="rating icon"
-                  />
-                  <p>Rating</p>
-                </button>
-                <button
-                  onClick={() => handleToolBoxButtonClick("Button")}
-                >
-                  <img
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977969/SVG_8_ddw6ca.png"
-                    alt="buttons icon"
-                  />
-                  <p>Buttons</p>
-                </button>
+              <div className={styles.bubbles}>
+                <h1>Inputs</h1>
+                <div className={styles.bubbleContent}>
+                  <button
+                    onClick={() =>
+                      handleToolBoxButtonClick("TextInput")
+                    }
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977877/SVG_6_x5vxny.png"
+                      alt="doc icon"
+                    />
+                    <p>Text</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Number")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977951/SVG_3_krlgib.png"
+                      alt="number icon"
+                    />
+                    <p>Number</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Email")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977951/SVG_3_krlgib.png"
+                      alt="email icon"
+                    />
+                    <p>Email</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Phone")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977958/SVG_4_rakedz.png"
+                      alt="phone icon"
+                    />
+                    <p>Phone</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Date")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977961/SVG_5_o1b4ja.png"
+                      alt="date icon"
+                    />
+                    <p>Date</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Time")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977958/SVG_4_rakedz.png"
+                      alt="time icon"
+                    />
+                    <p>Time</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Rating")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977965/SVG_7_snsvsb.png"
+                      alt="rating icon"
+                    />
+                    <p>Rating</p>
+                  </button>
+                  <button
+                    onClick={() => handleToolBoxButtonClick("Button")}
+                  >
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977969/SVG_8_ddw6ca.png"
+                      alt="buttons icon"
+                    />
+                    <p>Buttons</p>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className={styles.flowContent}>
-          <div className={styles.leftGap}></div>
-          <div className={styles.rightGap}>
-            <div className={styles.flowDisplay}>
-              <div
-                className={`${styles.flowButton} ${styles.start}`}
-                style={{ order: 0 }}
-              >
-                <img
-                  src={
-                    theme === "light"
-                      ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1735017073/Vector_5_ag2xrt.png"
-                      : "https://res.cloudinary.com/dtu64orvo/image/upload/v1735013851/Vector_ivnat6.svg"
-                  }
-                  alt="start icon"
-                  className={styles.startIcon}
-                />
-                <h1>Start</h1>
-              </div>
-              {flowData?.map?.(
-                (button, index) =>
-                  button.buttonType !== "StartButton" && (
-                    <div
-                      key={button._id || index}
-                      className={`${styles.flowButton} ${
-                        [
+        {isFlowClicked && (
+          <div className={styles.flowContent}>
+            <div className={styles.leftGap}></div>
+            <div className={styles.rightGap}>
+              <div className={styles.flowDisplay}>
+                <div
+                  className={`${styles.flowButton} ${styles.start}`}
+                  style={{ order: 0 }}
+                >
+                  <img
+                    src={
+                      theme === "light"
+                        ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1735017073/Vector_5_ag2xrt.png"
+                        : "https://res.cloudinary.com/dtu64orvo/image/upload/v1735013851/Vector_ivnat6.svg"
+                    }
+                    alt="start icon"
+                    className={styles.startIcon}
+                  />
+                  <h1>Start</h1>
+                </div>
+                {flowData?.map?.(
+                  (button, index) =>
+                    button.buttonType !== "StartButton" && (
+                      <div
+                        key={button._id || index}
+                        className={`${styles.flowButton} ${
+                          [
+                            "TextBubble",
+                            "Image",
+                            "Video",
+                            "Gif",
+                          ].includes(button.buttonType)
+                            ? styles.bubble
+                            : ""
+                        } ${
+                          button.buttonType === "StartButton"
+                            ? styles.start
+                            : ""
+                        }`}
+                        style={{ order: index + 1 }} // Ensure StartButton stays at the top
+                      >
+                        {button.buttonType !== "StartButton" && (
+                          <div className={styles.ellipse}></div>
+                        )}
+                        {button.buttonType !== "StartButton" && (
+                          <img
+                            className={styles.deleteIcon}
+                            onClick={() =>
+                              handleDeleteFlowButton(
+                                button.id || index
+                              )
+                            }
+                            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
+                            alt="delete"
+                          />
+                        )}
+                        <h1>
+                          {button.buttonType === "Button"
+                            ? "Finish"
+                            : `${label[button.buttonType]} ${getCount(
+                                button.buttonType
+                              )}`}
+                        </h1>
+
+                        {[
                           "TextBubble",
                           "Image",
                           "Video",
                           "Gif",
-                        ].includes(button.buttonType)
-                          ? styles.bubble
-                          : ""
-                      } ${
-                        button.buttonType === "StartButton"
-                          ? styles.start
-                          : ""
-                      }`}
-                      style={{ order: index + 1 }} // Ensure StartButton stays at the top
-                    >
-                      {button.buttonType !== "StartButton" && (
-                        <div className={styles.ellipse}></div>
-                      )}
-                      {button.buttonType !== "StartButton" && (
-                        <img
-                          className={styles.deleteIcon}
-                          onClick={() =>
-                            handleDeleteFlowButton(button.id || index)
-                          }
-                          src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
-                          alt="delete"
-                        />
-                      )}
-                      <h1>
-                        {`${label[button.buttonType]} ${index + 1}`}
-                      </h1>
-                      {[
-                        "TextBubble",
-                        "Image",
-                        "Video",
-                        "Gif",
-                      ].includes(button.buttonType) && (
-                        <input
-                          type="text"
-                          placeholder={
-                            button.buttonType === "TextBubble"
-                              ? "Enter text"
-                              : "Click to add link"
-                          }
-                          className={styles.inputField}
-                          value={
-                            bubbleData?.[button.buttonType] || ""
-                          }
-                          onChange={(e) =>
-                            handleInputChange(e, button.buttonType)
-                          }
-                        />
-                      )}
-                      {[
-                        "TextInput",
-                        "Number",
-                        "Email",
-                        "Phone",
-                        "Date",
-                        "Time",
-                        "Rating",
-                        "Button",
-                      ].includes(button.buttonType) && (
-                        <p>{inputTexts[button.buttonType]}</p>
-                      )}
-                    </div>
-                  )
-              )}
+                        ].includes(button.buttonType) && (
+                          <input
+                            type="text"
+                            placeholder={
+                              button.buttonType === "TextBubble"
+                                ? "Enter text"
+                                : "Click to add link"
+                            }
+                            className={styles.inputField}
+                            value={button.content || ""} // Bind the input value to the button's content
+                            onChange={
+                              (e) =>
+                                handleInputChange(
+                                  e,
+                                  button.buttonType,
+                                  button.id
+                                ) // Pass button.id to handleInputChange
+                            }
+                          />
+                        )}
+                        {[
+                          "TextInput",
+                          "Number",
+                          "Email",
+                          "Phone",
+                          "Date",
+                          "Time",
+                          "Rating",
+                          "Button",
+                        ].includes(button.buttonType) && (
+                          <p>{inputTexts[button.buttonType]}</p>
+                        )}
+                      </div>
+                    )
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {!isFlowClicked && isResponseClicked && <ResponseDisplay />}
       </main>
     </section>
   );
