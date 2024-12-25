@@ -54,6 +54,7 @@ const Dashboard = () => {
   const handleFolderClick = (folderName) => {
     console.log("Selected folder:", folderName);
     setSelectedFolder(folderName);
+    sessionStorage.setItem("selectedFolder", folderName);
     const allForms =
       JSON.parse(localStorage.getItem("folderForms")) || [];
     if (allForms[folderName]) {
@@ -243,6 +244,7 @@ const Dashboard = () => {
 
   const handleFormClick = (formName) => {
     setSelectedForm(formName);
+    sessionStorage.setItem("selectedForm", formName);
     navigate("/editor");
   };
 

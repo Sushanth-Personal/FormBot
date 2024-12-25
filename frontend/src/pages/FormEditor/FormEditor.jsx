@@ -5,8 +5,10 @@ import { useNavigate } from "react-router-dom";
 import Switch from "../../components/Switch/Switch";
 import { api } from "../../api/api";
 import useAuth from "../../customHooks/useAuth";
+import useFetchFlowData from "../../customHooks/useFetchFlowData";
 const FormEditor = () => {
   useAuth();
+  useFetchFlowData();
   const navigate = useNavigate();
   const {
     theme,
@@ -14,6 +16,9 @@ const FormEditor = () => {
     selectedForm,
     setSelectedForm,
     selectedFolder,
+    setSelectedFolder,
+    flowData,
+    setFlowData,
   } = useUserContext();
   const [isInputSelected, setIsInputSelected] = useState(false);
   const [currentForm, setCurrentForm] = useState(selectedForm);
@@ -23,8 +28,10 @@ const FormEditor = () => {
   const [selectedTool, setSelectedTool] = useState(null);
   const [flowButtons, setFlowButtons] = useState([
     {
-      type: "StartButton",
+      buttonType: "StartButton",
       id: `StartButton-${Date.now()}`,
+      content: "",
+      order: 0,
     },
   ]);
 
@@ -74,30 +81,52 @@ const FormEditor = () => {
   };
 
   useEffect(() => {
+    console.log(flowData);
+    const formName = sessionStorage.getItem("selectedForm");
+    if (formName) {
+      setCurrentForm(formName);
+      setSelectedForm(formName);
+    }
+    const folderName = sessionStorage.getItem("selectedFolder");
+    if (folderName) {
+      setSelectedFolder(folderName);
+    }
+  }, [flowData]);
+
+  useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
   const handleInputBlur = () => {
     setSelectedForm(currentForm);
+    sessionStorage.setItem("selectedForm", currentForm);
     setIsInputSelected(false);
   };
 
   // Handle toolbox button click to add flow button
   const handleToolBoxButtonClick = (toolType) => {
     setSelectedTool(toolType);
-    const newFlowButton = {
-      type: toolType,
+
+    const newFlowData = {
+      buttonType: toolType,
       id: `${toolType}-${Date.now()}`, // Unique ID based on timestamp for each click
+      content: "", // Default content
+      order: flowData.length + 1, // Assign order based on existing buttons
     };
 
-    // Add the new flow button to the flowButtons state
-    setFlowButtons((prevButtons) => [...prevButtons, newFlowButton]);
+    // Append the new flow button to the flowData state
+    setFlowData((prevFlowData) => {
+      const updatedFlowData = Array.isArray(prevFlowData)
+        ? [...prevFlowData, newFlowData]
+        : [newFlowData]; // Handle case where flowData is not an array
+      return updatedFlowData;
+    });
   };
 
   // Handle delete button for a flow button
   const handleDeleteFlowButton = (id) => {
     setFlowButtons((prevButtons) =>
-      prevButtons.filter((button) => button.id !== id)
+      prevButtons.filter((button) => button._id !== id)
     );
   };
 
@@ -109,26 +138,46 @@ const FormEditor = () => {
   };
 
   const handleSave = () => {
-    const payload = flowButtons
+    // Ensure StartButton with order: 1 exists
+    
+
+   
+
+    // Prepare the payload
+    const payload = flowData
       .filter((button) =>
-        ["TextBubble", "Image", "Video", "Gif", "TextInput", "Button", "Time", "Date", "Number", "Email", "Phone", "Rating"].includes(
-          button.type
-        )
+        [
+          "TextBubble",
+          "Image",
+          "Video",
+          "Gif",
+          "TextInput",
+          "Button",
+          "Time",
+          "Date",
+          "Number",
+          "Email",
+          "Phone",
+          "Rating",
+          "StartButton",
+        ].includes(button.buttonType)
       )
       .map((button) => ({
-        buttonType: button.type, // Changed to match the backend
-        order: flowButtons.indexOf(button),
-        content: bubbleData[button.type] || "", // Ensure content is properly assigned
+        buttonType: button.buttonType,
+        order: flowData.findIndex(
+          (flowButton) => flowButton.id === button.id
+        ), // Ensure proper order
+        content: bubbleData[button.buttonType] || "", // Ensure content is properly assigned
       }));
 
     console.log("payload", payload, selectedFolder, selectedForm);
 
     // Send the data to the backend using axios
     api
-      .put(`/api/form/${userData._id}`, {
-        formName: selectedForm, // Example, make sure you provide the form name dynamically
+      .put(`/protected/form/${userData._id}`, {
+        formName: selectedForm,
         folderName: selectedFolder,
-        elements: payload, // The elements field should be the array from payload
+        elements: payload,
       })
       .then((response) => {
         console.log("Data saved successfully", response.data);
@@ -331,81 +380,76 @@ const FormEditor = () => {
           <div className={styles.leftGap}></div>
           <div className={styles.rightGap}>
             <div className={styles.flowDisplay}>
-              {flowButtons.map((button, index) => (
-                <div
-                  key={button.id}
-                  className={`${styles.flowButton} ${
-                    ["TextBubble", "Image", "Video", "Gif"].includes(
-                      button.type
-                    )
-                      ? styles.bubble
-                      : ""
-                  } ${
-                    button.type === "StartButton" ? styles.start : ""
-                  }`}
-                  style={{ order: index }}
-                >
-                  {button.type === "StartButton" && (
-                    <img
-                      src={
-                        theme === "light"
-                          ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1735017073/Vector_5_ag2xrt.png"
-                          : "https://res.cloudinary.com/dtu64orvo/image/upload/v1735013851/Vector_ivnat6.svg"
-                      }
-                      alt="start icon"
-                      className={styles.startIcon}
-                    />
-                  )}
-                  {button.type !== "StartButton" && (
-                    <div className={styles.ellipse}></div>
-                  )}
-                  {button.type !== "StartButton" && (
-                    <img
-                      className={styles.deleteIcon}
-                      onClick={() =>
-                        handleDeleteFlowButton(button.id)
-                      }
-                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
-                      alt="delete"
-                    />
-                  )}
-                  <h1>
-                    {button.type === "StartButton"
-                      ? "Start"
-                      : `${label[button.type]} ${index}`}{" "}
-                    {/* Use button's own counter */}
-                  </h1>
-                  {["TextBubble", "Image", "Video", "Gif"].includes(
-                    button.type
-                  ) && (
-                    <input
-                      type="text"
-                      placeholder={
-                        button.type === "TextBubble"
-                          ? "Enter text"
-                          : "Click to add link"
-                      }
-                      className={styles.inputField}
-                      value={bubbleData[button.type]}
-                      onChange={(e) =>
-                        handleInputChange(e, button.type)
-                      }
-                    />
-                  )}
-                  {[
-                    "TextInput",
-                    "Number",
-                    "Email",
-                    "Phone",
-                    "Date",
-                    "Time",
-                    "Rating",
-                    "Button",
-                  ].includes(button.type) && (
-                    <p>{inputTexts[button.type]}</p>
-                  )}
-                </div>
-              ))}
+              <div
+                className={`${styles.flowButton} ${styles.start}`}
+                style={{ order: 0 }}
+              >
+                <img
+                  src={
+                    theme === "light"
+                      ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1735017073/Vector_5_ag2xrt.png"
+                      : "https://res.cloudinary.com/dtu64orvo/image/upload/v1735013851/Vector_ivnat6.svg"
+                  }
+                  alt="start icon"
+                  className={styles.startIcon}
+                />
+                <h1>Start</h1>
+              </div>
+              {flowData?.map?.((button, index) => (
+    button.buttonType !== "StartButton" && (
+      <div
+        key={button._id || index}
+        className={`${styles.flowButton} ${
+          ["TextBubble", "Image", "Video", "Gif"].includes(button.buttonType)
+            ? styles.bubble
+            : ""
+        } ${
+          button.buttonType === "StartButton" ? styles.start : ""
+        }`}
+        style={{ order: index + 1 }}  // Ensure StartButton stays at the top
+      >
+        {button.buttonType !== "StartButton" && (
+          <div className={styles.ellipse}></div>
+        )}
+        {button.buttonType !== "StartButton" && (
+          <img
+            className={styles.deleteIcon}
+            onClick={() => handleDeleteFlowButton(button._id)}
+            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
+            alt="delete"
+          />
+        )}
+        <h1>
+          {`${label[button.buttonType]} ${index+1}`}
+        </h1>
+        {["TextBubble", "Image", "Video", "Gif"].includes(button.buttonType) && (
+          <input
+            type="text"
+            placeholder={
+              button.buttonType === "TextBubble"
+                ? "Enter text"
+                : "Click to add link"
+            }
+            className={styles.inputField}
+            value={bubbleData?.[button.buttonType] || ""}
+            onChange={(e) => handleInputChange(e, button.buttonType)}
+          />
+        )}
+        {[
+          "TextInput",
+          "Number",
+          "Email",
+          "Phone",
+          "Date",
+          "Time",
+          "Rating",
+          "Button",
+        ].includes(button.buttonType) && (
+          <p>{inputTexts[button.buttonType]}</p>
+        )}
+      </div>
+    )
+  ))}
             </div>
           </div>
         </div>

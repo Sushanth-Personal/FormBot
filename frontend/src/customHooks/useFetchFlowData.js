@@ -1,24 +1,40 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { api } from "../api/api";
+import { useUserContext } from "../Contexts/UserContext";
 /**
  * Custom hook to fetch flow button data from the backend and cache it in sessionStorage.
  */
 const useFetchFlowData = () => {
-  const [flowData, setFlowData] = useState(null);
+  const {
+    userData,
+    selectedFolder,
+    selectedForm,
+    flowData,
+    setFlowData,
+  } = useUserContext();
 
   useEffect(() => {
+    console.log("Reached",userData);
     const fetchData = async () => {
-      const cachedData = sessionStorage.getItem("flowData");
-      if (cachedData) {
-        setFlowData(JSON.parse(cachedData));
-      } else {
+     
+   
         try {
-          const response = await api.get("/flowData"); // Updated API endpoint
+          console.log("Reached", selectedFolder, selectedForm);
+          const response = await api.get(
+            `/protected/form/${userData._id}`,
+            {
+              params: {
+                formName: selectedForm,
+                folderName: selectedFolder,
+              },
+            }
+          ); // Updated API endpoint
           if (response.status === 200) {
             const data = response.data;
-            sessionStorage.setItem("flowData", JSON.stringify(data));
-            setFlowData(data);
+            console.log(response);
+
+            sessionStorage.setItem("flowData", JSON.stringify(data.elements));
+            setFlowData(data.elements);
           } else {
             console.error("Failed to fetch flow data");
           }
@@ -26,10 +42,10 @@ const useFetchFlowData = () => {
           console.error("Error fetching flow data:", error);
         }
       }
-    };
+    
 
     fetchData();
-  }, []);
+  }, [userData]);
 
   return flowData;
 };

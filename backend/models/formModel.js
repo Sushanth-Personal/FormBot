@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const formElementSchema = new mongoose.Schema({
   buttonType: {
@@ -8,12 +8,27 @@ const formElementSchema = new mongoose.Schema({
   content: {
     type: String, // For text, image URL, or placeholder text for input fields
     required: function () {
-      return this.type === 'text' || this.type === 'image';
+      return this.type === "text" || this.type === "image";
     },
   },
   order: {
     type: Number, // Determines the order of elements in the form
     required: true,
+  },
+});
+
+const responseSchema = new mongoose.Schema({
+  elementId: {
+    type: mongoose.Schema.Types.ObjectId, // References the specific form element
+    required: true,
+  },
+  response: {
+    type: String, // The user's input or response
+    required: true,
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now, // When the response was submitted
   },
 });
 
@@ -25,7 +40,7 @@ const formSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Assuming a User model exists
+    ref: "User", // Assuming a User model exists
     required: true,
   },
   folderName: {
@@ -37,8 +52,7 @@ const formSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  responses: [responseSchema], // Array of responses
 });
 
-
-
-module.exports = mongoose.model('Form', formSchema);
+module.exports = mongoose.model("Form", formSchema);

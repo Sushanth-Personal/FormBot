@@ -32,12 +32,21 @@ const getUser = async (req, res) => {
 
     // Iterate through folders to fetch forms associated with each
     for (const folder of folders) {
-      const forms = await Form.find({ userId, folderName: folder.name }).select("formName -_id");
+      const forms = await Form.find({
+        userId,
+        folderName: folder.name,
+      }).select("formName -_id");
       folderForms[folder.name] = forms.map((form) => form.formName);
     }
     console.log(folderForms);
     // Respond with the user data and structured folder-to-forms mapping
-    res.status(200).json({ user, folders: folders.map((f) => f.name), folderForms });
+    res
+      .status(200)
+      .json({
+        user,
+        folders: folders.map((f) => f.name),
+        folderForms,
+      });
   } catch (error) {
     // Log the error for debugging purposes
     console.error("Error fetching user or folders:", error.message);
@@ -49,7 +58,6 @@ const getUser = async (req, res) => {
     });
   }
 };
-
 
 const createFolder = async (req, res) => {
   const { folderName } = req.body;
@@ -73,7 +81,7 @@ const createFolder = async (req, res) => {
     const userFolders = await Folder.find({ userId }).select("name"); // Only select folder names
 
     // Map to get an array of folder names
-    const folderNames = userFolders.map(folder => folder.name);
+    const folderNames = userFolders.map((folder) => folder.name);
 
     // Respond with the array of folder names
     res.status(201).json(folderNames);
@@ -91,7 +99,6 @@ const createFolder = async (req, res) => {
     });
   }
 };
-
 
 const deleteFolder = async (req, res) => {
   const { folderName } = req.body;
@@ -161,7 +168,6 @@ const deleteFolder = async (req, res) => {
   }
 };
 
-
 // Create a new form
 const createForm = async (req, res) => {
   try {
@@ -175,9 +181,10 @@ const createForm = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
-
 
     // Create a new form linked to the folder and user
     const form = new Form({
@@ -186,7 +193,6 @@ const createForm = async (req, res) => {
       folderName,
     });
 
-    
     await form.save(); // Save the form
 
     // Retrieve all forms grouped by their folders
@@ -226,11 +232,16 @@ const deleteForm = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
 
     // Check if folder exists
-    const folderExists = await Folder.findOne({ userId, name: folderName });
+    const folderExists = await Folder.findOne({
+      userId,
+      name: folderName,
+    });
     if (!folderExists) {
       return res.status(404).json({ error: "Folder not found." });
     }
@@ -273,13 +284,16 @@ const deleteForm = async (req, res) => {
     // Respond with folders and folder-to-forms mapping
     res.status(200).json({ folders: folderNames, folderForms });
   } catch (error) {
-    console.error("Error deleting form or retrieving forms:", error.message);
+    console.error(
+      "Error deleting form or retrieving forms:",
+      error.message
+    );
     res.status(500).json({
-      error: "An unexpected error occurred while processing the request.",
+      error:
+        "An unexpected error occurred while processing the request.",
     });
   }
 };
-
 
 const updateFormContent = async (req, res) => {
   try {
@@ -294,7 +308,9 @@ const updateFormContent = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
 
     // Destructure data from the request body
@@ -303,14 +319,16 @@ const updateFormContent = async (req, res) => {
 
     // Check if all required fields are present
     if (!formName || !folderName || !elements) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res
+        .status(400)
+        .json({ error: "Missing required fields" });
     }
 
     // Find the existing form by formName and userId
     const existingForm = await Form.findOne({ formName, userId });
 
     if (!existingForm) {
-      return res.status(404).json({ error: 'Form not found' });
+      return res.status(404).json({ error: "Form not found" });
     }
 
     // Update the form fields
@@ -321,18 +339,78 @@ const updateFormContent = async (req, res) => {
     await existingForm.save();
 
     // Send success response
-    res.status(200).json({ message: 'Form updated successfully', form: existingForm });
+    res
+      .status(200)
+      .json({
+        message: "Form updated successfully",
+        form: existingForm,
+      });
   } catch (error) {
-    console.error('Error updating form:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error updating form:", error);
+    res.status(500).json({ error: "Server error" });
   }
-}
+};
+
+const getFormContent = async (req, res) => {
+  try {
+    console.log("Reaching getFormContent");
+
+    // Extract userId from route parameters
+    const { id} = req.params;
+    console.log("UserId:", id);
+
+    // Validate userId
+   const userId = mongoose.Types.ObjectId.isValid(id)
+   ? new mongoose.Types.ObjectId(id)
+   : null;
+
+ if (!userId) {
+   return res
+     .status(400)
+     .json({ message: "Invalid userId format" });
+ }
+    // Extract formName and folderName from query parameters
+    const { formName, folderName } = req.query;
+    console.log("formName:", formName, "folderName:", folderName);
+
+    // Check if all required fields are provided
+    if (!formName || !folderName) {
+      return res.status(400).json({ error: "Missing formName or folderName" });
+    }
+
+    // Query the database for the form
+    const form = await Form.findOne({
+      userId,
+      formName,
+      folderName,
+    });
+
+    if (!form) {
+      return res.status(404).json({ error: "Form not found" });
+    }
+
+    // Return the form data including responses
+    res.status(200).json({
+      formName: form.formName,
+      folderName: form.folderName,
+      elements: form.elements,
+      responses: form.responses,
+    });
+  } catch (error) {
+    console.error("Error fetching form data:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 
 
 
-
-
-
-
-module.exports = { getUser, createFolder, deleteFolder, createForm, deleteForm, updateFormContent };
+module.exports = {
+  getUser,
+  createFolder,
+  deleteFolder,
+  createForm,
+  deleteForm,
+  updateFormContent,
+  getFormContent,
+};

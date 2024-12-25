@@ -14,6 +14,7 @@ export const UserProvider = ({ children }) => {
   const [allForms, setAllForms] = useState({});
   const [selectedForm, setSelectedForm] = useState(null);
   const [selectedFolder, setSelectedFolder] = useState(null);
+  const [flowData, setFlowData] = useState({});
   const value = useMemo(
     () => ({
       userId,
@@ -31,7 +32,9 @@ export const UserProvider = ({ children }) => {
       selectedForm,
       setSelectedForm,
       selectedFolder,
-      setSelectedFolder
+      setSelectedFolder,
+      flowData,
+      setFlowData
     }),
     [
       userId,
@@ -49,7 +52,9 @@ export const UserProvider = ({ children }) => {
       selectedForm,
       setSelectedForm,
       selectedFolder,
-      setSelectedFolder
+      setSelectedFolder,
+      flowData,
+      setFlowData
     ]
   );
 
