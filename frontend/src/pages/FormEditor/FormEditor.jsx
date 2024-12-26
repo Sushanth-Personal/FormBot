@@ -34,7 +34,6 @@ const FormEditor = () => {
     Phone: 0,
     Date: 0,
     Rating: 0,
-    Time: 0,
     TextBubble: 0,
     Image: 0,
     Video: 0,
@@ -55,7 +54,6 @@ const FormEditor = () => {
     Phone: "Hint : User will input a phone on his form",
     Date: "Hint : User will select a date",
     Rating: "Hint : User will tap to rate out of 5",
-    Time: "Hint : User will select a time",
   };
 
   const label = {
@@ -69,7 +67,6 @@ const FormEditor = () => {
     Image: "Image",
     Video: "Video",
     Gif: "GIF",
-    Time: "Input Time",
     Button: "Button",
   };
 
@@ -185,7 +182,6 @@ const FormEditor = () => {
           "Gif",
           "TextInput",
           "Button",
-          "Time",
           "Date",
           "Number",
           "Email",
@@ -230,6 +226,21 @@ const FormEditor = () => {
       });
   };
 
+  const handleShare = () => {
+
+    
+    // Construct a URL with minimal query parameters
+    const link = `${window.location.origin}/formbot?formName=${selectedForm}&folderName=${selectedFolder}&userId=${userData._id}`;
+  
+    navigator.clipboard.writeText(link)
+      .then(() => {
+        alert("Link copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+      });
+  };
+  
   return (
     <section className={styles.formEditor}>
       <nav className={styles.navBar}>
@@ -274,7 +285,7 @@ const FormEditor = () => {
             <Switch />
             <label htmlFor="basic-switch">Dark</label>
           </div>
-          <button className={styles.share}>Share</button>
+          <button onClick={handleShare} className={styles.share}>Share</button>
           <button
             onClick={handleSave}
             className={`${styles.share} ${styles.save}`}
@@ -388,15 +399,7 @@ const FormEditor = () => {
                     />
                     <p>Date</p>
                   </button>
-                  <button
-                    onClick={() => handleToolBoxButtonClick("Time")}
-                  >
-                    <img
-                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977958/SVG_4_rakedz.png"
-                      alt="time icon"
-                    />
-                    <p>Time</p>
-                  </button>
+            
                   <button
                     onClick={() => handleToolBoxButtonClick("Rating")}
                   >
@@ -516,7 +519,6 @@ const FormEditor = () => {
                           "Email",
                           "Phone",
                           "Date",
-                          "Time",
                           "Rating",
                           "Button",
                         ].includes(button.buttonType) && (

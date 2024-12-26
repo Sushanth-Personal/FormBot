@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect} from "react";
 import { api } from "../api/api";
 import { useUserContext } from "../Contexts/UserContext";
 /**
@@ -14,35 +14,36 @@ const useFetchFlowData = () => {
   } = useUserContext();
 
   useEffect(() => {
-    console.log("Reached",userData);
-    const fetchData = async () => {
-     
-   
-        try {
-          console.log("Reached", selectedFolder, selectedForm);
-          const response = await api.get(
-            `/protected/form/${userData._id}`,
-            {
-              params: {
-                formName: selectedForm,
-                folderName: selectedFolder,
-              },
-            }
-          ); // Updated API endpoint
-          if (response.status === 200) {
-            const data = response.data;
-            console.log(response);
 
-            sessionStorage.setItem("flowData", JSON.stringify(data.elements));
-            setFlowData(data.elements);
-          } else {
-            console.error("Failed to fetch flow data");
+    const fetchData = async () => {
+      try {
+        if (!userData._id) return;
+        console.log("Reached", selectedFolder, selectedForm);
+        const response = await api.get(
+          `/protected/form/${userData._id}`,
+          {
+            params: {
+              formName: selectedForm,
+              folderName: selectedFolder,
+            },
           }
-        } catch (error) {
-          console.error("Error fetching flow data:", error);
+        ); // Updated API endpoint
+        if (response.status === 200) {
+          const data = response.data;
+          console.log(response);
+
+          sessionStorage.setItem(
+            "flowData",
+            JSON.stringify(data.elements)
+          );
+          setFlowData(data.elements);
+        } else {
+          console.error("Failed to fetch flow data");
         }
+      } catch (error) {
+        console.error("Error fetching flow data:", error);
       }
-    
+    };
 
     fetchData();
   }, [userData]);

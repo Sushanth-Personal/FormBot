@@ -1,0 +1,186 @@
+/* Container and other styles remain the same */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: #ffffff;
+}
+
+.chatDisplay {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.botMessage {
+  background-color: rgb(249, 250, 251);
+  color: #181818;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 10px;
+  max-width: 70%;
+  align-self: flex-start;
+  box-shadow: (0, 0, 0, 0.3) 0px 1px 2px;
+  font-family: "Open Sans", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+.userMessage {
+  background-color: #ff8e21;
+  color: white;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 10px;
+  max-width: 70%;
+  align-self: flex-end;
+  box-shadow: (0, 0, 0, 0.3) 0px 1px 2px;
+  font-family: "Open Sans", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+.textInputSection {
+  display: flex;
+  padding: 10px;
+  background-color: #fff;
+  justify-content: flex-end;
+  margin-right: 20px;
+  gap: 20px;
+}
+.textInputSection input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  height: 50px;
+  width: 300px;
+  font-family: "Open Sans", sans-serif;
+  font-weight: 600;
+  color: #040404;
+  font-size: 1.5rem;
+  background-color: #ffffff;
+  box-shadow: 0px 4px 6.3px 0px #00000040;
+}
+
+.ratingBox {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  height: 50px;
+  width: 300px;
+}
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.ratingSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ratingSection button {
+  margin: 10px 0;
+}
+
+.submitButton,
+.confirmButton {
+  background-color: #053ec4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transform: 150ms ease-in-out;
+  height: 50px;
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submitButton:hover,
+.confirmButton:hover {
+  transform: scale(1.1);
+}
+
+.submitButtonContainer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 25px;
+}
+.final {
+  width: 200px;
+  border-radius: 12px;
+}
+
+/* Rating Section for Circular Bubbles with Numbers */
+.ratingBubbles {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.bubble {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #053ec4;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  transform: 150ms ease-in-out;
+}
+
+.selectedBubble {
+  background-color: #ff8e21;
+}
+
+.bubble:hover,
+.selectedBubble:hover {
+  background-color: #ff8e21;
+  transform: scale(1.1);
+}
+
+.datePickerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 10px;
+  position: relative;
+}
+.datePickerContainer input[type="date"] {
+  margin-bottom: 8px;
+  position: absolute;
+  right: 110px;
+  bottom: -63px;
+  border: none;
+}
+.datePickerContainer .confirmButton {
+  background-color: #007bff;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.datePickerContainer .confirmButton:hover {
+  background-color: #0056b3;
+}
