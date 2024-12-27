@@ -56,6 +56,7 @@ const ResponseDisplay = () => {
       console.log(response.data);
       setResponses(response.data.responses); // Set responses in the state
     } catch (error) {
+      setResponses([]);
       console.error("Error fetching form responses:", error);
     }
   };
@@ -87,83 +88,88 @@ const ResponseDisplay = () => {
 
   return (
     <section className={styles.responseDisplay}>
-      <div className={styles.viewContainer}>
-        <div className={styles.views}>
-          <h1>Views</h1>
-          <p>{analytics.view}</p>
-        </div>
-        <div className={styles.views}>
-          <h1>Start</h1>
-          <p>{analytics.start}</p>
-        </div>
-      </div>
-
-      {/* Table to display responses */}
-      <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Timestamp</th>{" "}
-              {/* Empty header for the first column (TimeStamp) */}
-              {flowData.map((item, index) => (
-                <th key={index}>{label[item.buttonType]}</th>
+      {responses.length === 0 && <div className = {styles.noResponseWindow}>
+        <h1 className = {styles.noResponse}>No Responses Yet</h1>
+      </div>}
+      {responses.length > 0 && (
+  <div>
+    
+  <div className={styles.viewContainer}>
+    <div className={styles.views}>
+      <h1>Views</h1>
+      <p>{analytics.view}</p>
+    </div>
+    <div className={styles.views}>
+      <h1>Start</h1>
+      <p>{analytics.start}</p>
+    </div>
+  </div>
+  <div className={styles.tableContainer}>
+    <table className={styles.table}>
+      <thead>
+        <tr>
+          <th>Timestamp</th>{" "}
+          {/* Empty header for the first column (TimeStamp) */}
+          {flowData.map((item, index) => (
+            <th key={index}>{label[item.buttonType]}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {/* Map over the user responses and display the data */}
+        {responses
+          .filter(
+            (res, index, self) =>
+              // Ensure only one row per user (based on userId)
+              self.findIndex((t) => t.user === res.user) === index
+          )
+          .map((response, rowIndex) => (
+            <tr key={rowIndex}>
+              <td>
+                {new Date(response.timestamp).toLocaleString()}
+              </td>{" "}
+              {/* Display Timestamp */}
+              {flowData.map((item, colIndex) => (
+                <td key={colIndex}>
+                  {/* Display the matching response or fallback */}
+                  {getResponseForButton(
+                    rowIndex + 1,
+                    item.buttonType,
+                    item.order
+                  )}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {/* Map over the user responses and display the data */}
-            {responses
-              .filter(
-                (res, index, self) =>
-                  // Ensure only one row per user (based on userId)
-                  self.findIndex((t) => t.user === res.user) === index
-              )
-              .map((response, rowIndex) => (
-                <tr key={rowIndex}>
-                  <td>
-                    {new Date(response.timestamp).toLocaleString()}
-                  </td>{" "}
-                  {/* Display Timestamp */}
-                  {flowData.map((item, colIndex) => (
-                    <td key={colIndex}>
-                      {/* Display the matching response or fallback */}
-                      {getResponseForButton(
-                        rowIndex + 1,
-                        item.buttonType,
-                        item.order
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className={styles.analyticsContainer}>
-        <div className = {styles.pieChart}>
-          <PieChart
-            data={[
-              { title: "", value: analytics.start, color: `#909090` },
-              {
-                title: "Completed",
-                value: analytics.completed,
-                color: ` #3B82F6`,
-              },
-            ]}
-            lineWidth={15} // Adjust the thickness of the ring
-            startAngle={0} // Starting angle of the chart
-            animate // Adds animation on load
-          />
-
-          <h1>Completed</h1>
-          <p>{analytics.completed}</p>
-        </div>
-        <div className = {styles.completionRate}>
-        <h1>Completion Rate</h1>
-        <p>{Math.round((analytics.completed /( analytics.start+ analytics.completed)) * 100)}%</p>
-      </div>
-      </div>
+          ))}
+      </tbody>
+    </table>
+  </div>
+  <div className={styles.analyticsContainer}>
+    <div className = {styles.pieChart}>
+      <PieChart
+        data={[
+          { title: "", value: analytics.start-analytics.completed, color: `#909090` },
+          {
+            title: "Completed",
+            value: analytics.completed,
+            color: ` #3B82F6`,
+          },
+        ]}
+        lineWidth={15} // Adjust the thickness of the ring
+        startAngle={0} // Starting angle of the chart
+        animate // Adds animation on load
+      />
+      <h1>Completed</h1>
+      <p>{analytics.completed}</p>
+    </div>
+    <div className = {styles.completionRate}>
+    <h1>Completion Rate</h1>
+    <p>{Math.round((analytics.completed /( analytics.start)) * 100)}%</p>
+  </div>
+  </div>
+</div>
+)}
+      
 
    
     </section>

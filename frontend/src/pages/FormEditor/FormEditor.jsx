@@ -111,6 +111,19 @@ const FormEditor = () => {
   };
 
   const changeFormName = async () => {
+    const folderForms =
+    JSON.parse(localStorage.getItem("folderForms")) || [];
+  if (
+    Object.values(folderForms).some((forms) =>
+      forms.includes(currentForm)
+    )
+  ) {
+    console.log("Form with this name already exists");
+    alert("Form with this name already exists");
+    setCurrentForm(selectedForm);
+    return;
+  }
+
     try {
       const response = await api.put(`/protected/form/${userData._id}`, {
         formName: selectedForm,
@@ -386,7 +399,7 @@ const FormEditor = () => {
                     onClick={() => handleToolBoxButtonClick("Number")}
                   >
                     <img
-                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977951/SVG_3_krlgib.png"
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734977948/SVG_2_qze36e.png"
                       alt="number icon"
                     />
                     <p>Number</p>

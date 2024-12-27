@@ -104,6 +104,7 @@ const deleteFolder = async (req, res) => {
   const { folderName } = req.body;
   const { id } = req.params; // userId
   console.log("folderName", folderName);
+
   // Validate userId
   const userId = mongoose.Types.ObjectId.isValid(id)
     ? new mongoose.Types.ObjectId(id)
@@ -120,14 +121,29 @@ const deleteFolder = async (req, res) => {
       userId: userId,
     });
 
-    const deletedForm = await Form.findOneAndDelete({
+    if (!deletedFolder) {
+      return res.status(404).json({ error: "Folder not found." });
+    }
+
+    // Delete all forms associated with the folder
+    const deletedForms = await Form.deleteMany({
       folderName: folderName,
       userId: userId,
     });
 
-    if (!deletedFolder) {
-      return res.status(404).json({ error: "Folder not found." });
-    }
+    // Delete associated Response and Analytics entries
+    await Response.deleteMany({
+      formName: { $in: deletedForms.map((form) => form.formName) },
+      folderName: folderName,
+      userId: userId,
+    });
+
+    await Analytics.deleteMany({
+      formName: { $in: deletedForms.map((form) => form.formName) },
+      folderName: folderName,
+      userId: userId,
+    });
+
     const formsByFolder = await Form.find({ userId }).select(
       "formName folderName -_id"
     );
@@ -257,6 +273,19 @@ const deleteForm = async (req, res) => {
       return res.status(404).json({ error: "Form not found." });
     }
 
+    // Delete corresponding analytics and responses
+    await Analytics.deleteMany({
+      userId,
+      formName,
+      folderName,
+    });
+
+    await Response.deleteMany({
+      userId,
+      formName,
+      folderName,
+    });
+
     // Fetch all forms and group them by folder
     const formsByFolder = await Form.find({ userId }).select(
       "formName folderName -_id"
@@ -294,6 +323,7 @@ const deleteForm = async (req, res) => {
     });
   }
 };
+
 
 const updateFormContent = async (req, res) => {
   try {

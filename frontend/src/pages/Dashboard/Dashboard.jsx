@@ -11,7 +11,7 @@ import {
 } from "../../api/api";
 import useFetchFolders from "../../customHooks/useFetchFolders";
 import { useNavigate } from "react-router-dom";
-
+import {fetchUserData} from "../../api/api";
 const Dashboard = () => {
   useAuth();
   useFetchFolders();
@@ -53,8 +53,15 @@ const Dashboard = () => {
 
   const handleFolderClick = (folderName) => {
     console.log("Selected folder:", folderName);
-    setSelectedFolder(folderName);
-    sessionStorage.setItem("selectedFolder", folderName);
+    if(selectedFolder === folderName){
+      setSelectedFolder("");
+      sessionStorage.removeItem("selectedFolder");
+      return;
+    }else{
+      setSelectedFolder(folderName);
+      sessionStorage.setItem("selectedFolder", folderName);
+    }
+
     const allForms =
       JSON.parse(localStorage.getItem("folderForms")) || [];
     if (allForms[folderName]) {
@@ -130,6 +137,7 @@ const Dashboard = () => {
       setFolders(currentFolderData);
       setIsDeleteModalOpen(false);
       setFolderToDelete("");
+      fetchUserData(userData._id);
     } catch (error) {
       console.error("Error deleting folder:", error);
       alert("Failed to delete folder. Please try again.");
@@ -159,6 +167,7 @@ const Dashboard = () => {
             forms.includes(formName)
           )
         ) {
+          console.log("Form with this name already exists");
           setError("Form with this name already exists");
           return;
         }
@@ -180,7 +189,7 @@ const Dashboard = () => {
         }
         // Update the folder list with the new folder data
         setForms(currentFormData[selectedFolder]);
-
+        fetchUserData(userData._id);
         console.log("Form created successfully:", currentFormData);
 
         // Close the modal after successful creation
@@ -200,6 +209,7 @@ const Dashboard = () => {
     console.log(formName);
     setFormToDelete(formName);
     setIsFormDeleteModalOpen(true);
+
   };
 
   const handleCancelFormDelete = () => {
@@ -228,11 +238,11 @@ const Dashboard = () => {
         setFormToDelete(""); // Reset form name state
         return;
       }
-
+      
       console.log(currentFormData[selectedFolder]);
       // If the form is successfully deleted, update the form list
       setForms(currentFormData[selectedFolder]); // Assuming `setForms` updates the list of forms
-
+      fetchUserData(userData._id);
       // Close the modal and reset the form state
       setIsFormDeleteModalOpen(false);
       setFormToDelete(""); // Reset form name state
@@ -358,7 +368,12 @@ const Dashboard = () => {
                     {form}
                     <img
                       role="button"
-                      onClick={() => confirmDeleteForm(form)}
+                      onClick={(event) => 
+                      {
+                        event.stopPropagation();
+                        confirmDeleteForm(form);
+                      }
+                        }
                       className={styles.deleteButton}
                       src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
                       alt="delete"

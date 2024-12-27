@@ -3,7 +3,7 @@ import { useUserContext } from "../Contexts/UserContext";
 import {api} from "../api/api";
 
 const useFetchFolders = () => {
-  const { setFolders, setUserData,userData } = useUserContext(); // Destructure setUserData from context
+  const { setFolders, setUserData,userData,setSelectedFolder } = useUserContext(); // Destructure setUserData from context
   const [loading, setLoading] = useState(true); // For loading state
   const [error, setError] = useState(null); // For error state
 
@@ -26,7 +26,8 @@ const useFetchFolders = () => {
 
         // Update folders in context
         setFolders(folders);
-
+        setSelectedFolder("");
+        sessionStorage.setItem("selectedFolder", "");
         setLoading(false);
       } catch (err) {
         console.error("Error fetching user and folder data:", err);

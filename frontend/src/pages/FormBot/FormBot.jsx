@@ -303,7 +303,7 @@ const FormBot = () => {
         order: currentIndex, // Current index in flowData
         response: tempRating, // Response content
       };
-
+  
       setMessages((prev) => [
         ...prev,
         {
@@ -315,11 +315,16 @@ const FormBot = () => {
       setTempRating(0); // Reset temporary rating
       setShowRatingInput(false); // Hide rating input
       setCurrentIndex((prev) => prev + 1); // Move to the next step
+  
+      // Call the analytics update for the first response (if not already done)
+      if (responses.length === 0) {
+        updateAnalytics("start"); // Update analytics for the first user response
+      }
     } else {
       alert("Please select a rating before confirming.");
     }
   };
-
+  
   const submitFormResponses = () => {
     console.log("Responses:", responses);
 
