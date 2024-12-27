@@ -314,9 +314,33 @@ const updateFormContent = async (req, res) => {
     }
 
     // Destructure data from the request body
-    const { formName, folderName, elements } = req.body;
+    const { formName, folderName, elements, newFormName } = req.body;
     console.log(formName, folderName, elements);
-
+    if(newFormName){
+      try {
+        const existingForm = await Form.findOne({ formName, userId, folderName });
+      if(existingForm){
+        existingForm.formName = newFormName;
+       
+        await Analytics.updateMany(
+          { userId, formName, folderName },
+          { $set: { formName: newFormName } }
+        );
+        
+        await Response.updateMany(
+          { userId, formName, folderName },
+          { $set: { formName: newFormName } }
+        );
+        
+        await existingForm.save();
+        return res.status(200).json({ message: "Form name updated successfully" });
+      }else{
+       return res.status(404).json({ error: "Form not found" });
+      }
+      } catch (error) {
+       return res.status(500).json({ error: "Server error" });
+      }
+    }
     // Check if all required fields are present
     if (!formName || !folderName || !elements) {
       return res
@@ -325,7 +349,7 @@ const updateFormContent = async (req, res) => {
     }
 
     // Find the existing form by formName and userId
-    const existingForm = await Form.findOne({ formName, userId });
+    const existingForm = await Form.findOne({ formName, userId});
 
     if (!existingForm) {
       return res.status(404).json({ error: "Form not found" });

@@ -144,7 +144,7 @@ const ResponseDisplay = () => {
         <div className = {styles.pieChart}>
           <PieChart
             data={[
-              { title: "", value:8, color: `#909090` },
+              { title: "", value: analytics.start, color: `#909090` },
               {
                 title: "Completed",
                 value: analytics.completed,
@@ -161,7 +161,7 @@ const ResponseDisplay = () => {
         </div>
         <div className = {styles.completionRate}>
         <h1>Completion Rate</h1>
-        <p>{Math.round((analytics.completed / analytics.start) * 100)}%</p>
+        <p>{Math.round((analytics.completed /( analytics.start+ analytics.completed)) * 100)}%</p>
       </div>
       </div>
 

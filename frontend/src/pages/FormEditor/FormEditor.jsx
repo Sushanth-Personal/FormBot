@@ -107,9 +107,27 @@ const FormEditor = () => {
   }, [theme]);
 
   const handleInputBlur = () => {
-    setSelectedForm(currentForm);
-    sessionStorage.setItem("selectedForm", currentForm);
-    setIsInputSelected(false);
+    changeFormName();
+  };
+
+  const changeFormName = async () => {
+    try {
+      const response = await api.put(`/protected/form/${userData._id}`, {
+        formName: selectedForm,
+        folderName: selectedFolder,
+        newFormName: currentForm,
+      });
+    
+      console.log(response);
+      if (response.status === 200) {
+        console.log(response);
+        setSelectedForm(currentForm);
+        sessionStorage.setItem("selectedForm", currentForm);
+        setIsInputSelected(false);
+      }
+    } catch (error) {
+      console.error("error updating formName", error);
+    }
   };
 
   // Handle toolbox button click to add flow button
@@ -227,12 +245,11 @@ const FormEditor = () => {
   };
 
   const handleShare = () => {
-
-    
     // Construct a URL with minimal query parameters
     const link = `${window.location.origin}/formbot?formName=${selectedForm}&folderName=${selectedFolder}&userId=${userData._id}`;
-  
-    navigator.clipboard.writeText(link)
+
+    navigator.clipboard
+      .writeText(link)
       .then(() => {
         alert("Link copied to clipboard!");
       })
@@ -240,7 +257,7 @@ const FormEditor = () => {
         console.error("Failed to copy link:", err);
       });
   };
-  
+
   return (
     <section className={styles.formEditor}>
       <nav className={styles.navBar}>
@@ -285,7 +302,9 @@ const FormEditor = () => {
             <Switch />
             <label htmlFor="basic-switch">Dark</label>
           </div>
-          <button onClick={handleShare} className={styles.share}>Share</button>
+          <button onClick={handleShare} className={styles.share}>
+            Share
+          </button>
           <button
             onClick={handleSave}
             className={`${styles.share} ${styles.save}`}
@@ -399,7 +418,7 @@ const FormEditor = () => {
                     />
                     <p>Date</p>
                   </button>
-            
+
                   <button
                     onClick={() => handleToolBoxButtonClick("Rating")}
                   >
