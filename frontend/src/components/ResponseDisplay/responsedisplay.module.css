@@ -115,3 +115,65 @@
 .table td {
     background-color: transparent;
 }
+
+.analyticsContainer{
+    display: flex;
+    margin-top: 65px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background-color: transparent;
+}
+
+.pieChart{
+    position: relative;
+    margin-right: 100px;
+}
+
+.pieChart h1{
+    position: absolute;
+    right:-105px;
+    top:25px;
+    color: var(--text-color);   
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    font-size: 2rem;
+}
+
+.pieChart p{
+    position: absolute;
+    right:-65px;
+    top:55px;
+    color: var(--text-color);   
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    font-size: 2rem;
+}
+
+.completionRate{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 245px;
+    height: 120px;
+    background-color: var(--background-color);
+    border-radius: 16px;
+    border-color: var(--border-color);
+    color: var(--text-color);
+    margin-left: 100px;
+    padding-left: 20px;
+}
+
+.completionRate h1{
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    font-size: 2.5rem;
+
+}
+
+.completionRate p{
+    font-weight: 400;
+    font-size: 2.9rem;
+}

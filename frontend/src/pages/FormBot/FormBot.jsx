@@ -5,6 +5,9 @@ import useFetchFlowData from "../../customHooks/useFetchFlowData";
 import { useUserContext } from "../../Contexts/UserContext";
 import useAuth from "../../customHooks/useAuth";
 import { useRef } from "react";
+import { api } from "../../api/api";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; // Import the CSS
 
 const FormBot = () => {
   useAuth();
@@ -33,6 +36,7 @@ const FormBot = () => {
   const [isSubmitButton, setIsSubmitButton] = useState(false);
   const [tempInput, setTempInput] = useState(""); // Temporary input for special types
   const [inputType, setInputType] = useState("text"); // Determines the input type
+  const [responses, setResponses] = useState([]); // Store all user responses
   const chatDisplayRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +56,12 @@ const FormBot = () => {
     setSelectedFolder(folderName);
     setSelectedForm(formName);
   }, [location.search]);
+
+  useEffect(() => {
+    if (queryParams.userId) {
+      updateAnalytics("view");
+    }
+  }, [queryParams]);
 
   useFetchFlowData();
 
@@ -182,10 +192,21 @@ const FormBot = () => {
 
     // Handle Date Picker input
     if (showDatePicker && tempDate) {
+      const response = {
+        buttonType: "Date",
+        order: currentIndex,
+        response: tempDate,
+      };
+
+      if (responses.length === 0) {
+        updateAnalytics("start"); // Update analytics for the first user response
+      }
+
       setMessages((prev) => [
         ...prev,
-        { type: "user", content: `Selected Date: ${tempDate}` },
+        { type: "user", content: tempDate },
       ]);
+      setResponses((prev) => [...prev, response]);
       setTempDate(null);
       setShowDatePicker(false);
       setCurrentIndex((prev) => prev + 1);
@@ -194,7 +215,6 @@ const FormBot = () => {
 
     // Validate and process input for other button types
     if (!isInputDisabled && userInput.trim()) {
-      // Determine button type for current flow step
       const currentFlow = flowData[currentIndex];
       if (currentFlow && currentFlow.buttonType) {
         switch (currentFlow.buttonType) {
@@ -214,7 +234,7 @@ const FormBot = () => {
             break;
 
           case "Phone":
-            const phoneRegex = /^[0-9]{10}$/; // Adjust for different formats if necessary
+            const phoneRegex = /^[0-9]{10}$/;
             if (!phoneRegex.test(userInput)) {
               alert("Please enter a valid 10-digit phone number.");
               return;
@@ -222,21 +242,48 @@ const FormBot = () => {
             break;
 
           default:
-            // No validation needed for other button types
             break;
         }
       }
 
-      // Append user input to messages and proceed
+      const response = {
+        buttonType: currentFlow.buttonType,
+        order: currentIndex,
+        response: userInput,
+      };
+
+      if (responses.length === 0) {
+        updateAnalytics("start"); // Update analytics for the first user response
+      }
+
       setMessages((prev) => [
         ...prev,
         { type: "user", content: userInput },
       ]);
+      setResponses((prev) => [...prev, response]);
       setUserInput("");
       setCurrentIndex((prev) => prev + 1);
+
       if (currentFlow.buttonType === "TextInput") {
-        setHasSentTextInput(false); // Reset flag for TextInput
+        setHasSentTextInput(false);
       }
+    }
+  };
+
+  // New function to update analytics
+  const updateAnalytics = async (type) => {
+    try {
+      const response = await api.put(
+        `/analytics/${queryParams.userId}`,
+        {
+          folderName: queryParams.folderName,
+          formName: queryParams.formName,
+          analytics: type,
+        }
+      );
+      console.log(`Analytics updated with ${type}:`, response);
+    } catch (error) {
+      console.error("Error updating analytics with 'start':", error);
     }
   };
 
@@ -249,16 +296,79 @@ const FormBot = () => {
   };
 
   const confirmRatingSelection = () => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        type: "user",
-        content: `Selected Rating: ${tempRating} Stars`,
-      },
-    ]);
-    setTempRating(0);
-    setShowRatingInput(false);
-    setCurrentIndex((prev) => prev + 1);
+    console.log(tempRating);
+    if (tempRating > 0) {
+      const response = {
+        buttonType: "Rating", // Button type for rating
+        order: currentIndex, // Current index in flowData
+        response: tempRating, // Response content
+      };
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "user",
+          content: `Selected Rating: ${tempRating} Stars`,
+        },
+      ]);
+      setResponses((prev) => [...prev, response]); // Update responses with the selected rating
+      setTempRating(0); // Reset temporary rating
+      setShowRatingInput(false); // Hide rating input
+      setCurrentIndex((prev) => prev + 1); // Move to the next step
+    } else {
+      alert("Please select a rating before confirming.");
+    }
+  };
+
+  const submitFormResponses = () => {
+    console.log("Responses:", responses);
+
+    const timestamp = new Date();
+
+    // Create an array of responses along with their flowData
+    const responsesWithFlowData = flowData.map((flow, index) => {
+      const userResponse = responses.find(
+        (response) => response.order === index
+      );
+
+      return {
+        buttonType: flow.buttonType,
+        content: flow.content,
+        response: userResponse ? userResponse.response : null,
+        order: index + 1,
+        timestamp: timestamp,
+      };
+    });
+
+    console.log(responsesWithFlowData);
+
+    api
+      .post(`/form/response/${queryParams.userId}`, {
+        folderName: queryParams.folderName,
+        formName: queryParams.formName,
+        responses: responsesWithFlowData,
+      })
+      .then((response) => {
+        console.log("Responses submitted successfully", response);
+        updateAnalytics("completed");
+        submitToast();
+      })
+      .catch((error) => {
+        console.error("Error submitting responses", error);
+      });
+  };
+
+  const submitToast = () => {
+    setTimeout(() => {
+      // Trigger the toast notification
+      toast.success('Form Submitted Successfully!', {
+        position: toast.POSITION.TOP_CENTER, // Position of the toast
+        autoClose: 5000, // Time in milliseconds before the toast auto closes
+        hideProgressBar: false, // Show progress bar
+        closeOnClick: true, // Close on click
+        pauseOnHover: true, // Pause when hovered
+      });
+    }, 1000); // Simulating a delay before submission
   };
 
   return (
@@ -365,14 +475,14 @@ const FormBot = () => {
       {isSubmitButton && (
         <div className={styles.submitButtonContainer}>
           <button
-            disabled={isInputDisabled}
-            onClick={handleUserInput}
+            onClick={submitFormResponses}
             className={`${styles.submitButton} ${styles.final}`}
           >
             Submit
           </button>
         </div>
       )}
+       <ToastContainer />
     </div>
   );
 };

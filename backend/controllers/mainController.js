@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const Folder = require("../models/folderModel");
 const Form = require("../models/formModel");
+const Response = require("../models/responseModel");
+const Analytics = require("../models/analyticsModel");
 const getUser = async (req, res) => {
   const { id } = req.params;
 
@@ -40,13 +42,11 @@ const getUser = async (req, res) => {
     }
     console.log(folderForms);
     // Respond with the user data and structured folder-to-forms mapping
-    res
-      .status(200)
-      .json({
-        user,
-        folders: folders.map((f) => f.name),
-        folderForms,
-      });
+    res.status(200).json({
+      user,
+      folders: folders.map((f) => f.name),
+      folderForms,
+    });
   } catch (error) {
     // Log the error for debugging purposes
     console.error("Error fetching user or folders:", error.message);
@@ -339,15 +339,122 @@ const updateFormContent = async (req, res) => {
     await existingForm.save();
 
     // Send success response
-    res
-      .status(200)
-      .json({
-        message: "Form updated successfully",
-        form: existingForm,
-      });
+    res.status(200).json({
+      message: "Form updated successfully",
+      form: existingForm,
+    });
   } catch (error) {
     console.error("Error updating form:", error);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+const addFormResponses = async (req, res) => {
+  const { id } = req.params;
+  const { folderName, formName, responses } = req.body;
+  console.log(responses);
+
+  // Validate userId
+  const userId = mongoose.Types.ObjectId.isValid(id)
+    ? new mongoose.Types.ObjectId(id)
+    : null;
+
+  if (!userId) {
+    return res.status(400).json({ message: "Invalid userId format" });
+  }
+
+  try {
+    // Check if the form exists by userId, formName, and folderName
+    const form = await Form.findOne({ formName, userId, folderName });
+
+    if (!form) {
+      return res.status(404).json({ message: "Form not found" });
+    }
+
+    // Find the latest response by userId, formName, and folderName, ordered by the timestamp or creation date
+    const latestResponse = await Response.findOne({
+      userId,
+      folderName,
+      formName,
+    }).sort({ timestamp: -1 }); // Sort by timestamp in descending order to get the latest response
+
+    // Get the last user value (if exists) and increment it by 1
+    const lastUserValue = latestResponse ? latestResponse.user : 0; // Default to 0 if no previous responses
+
+    // Create a new user value for all responses based on the last user value
+    const newUser = lastUserValue + 1;
+
+    // Iterate over all responses and save them
+    const savedResponses = [];
+    for (const resp of responses) {
+      if (!resp.order || !resp.buttonType) {
+        return res.status(400).json({ message: 'order and buttonType are required for each response' });
+      }
+
+      const { buttonType, response, order, timestamp } = resp;
+
+      // Check if the element exists in the form by order and buttonType
+      const element = form.elements.find(
+        (el) => el.order === order && el.buttonType === buttonType
+      );
+      console.log("element", element);
+
+      if (element) {
+        // Save the response to the Response model with the same user value for all responses
+        const newResponse = new Response({
+          userId,  // Save the userId from the request
+          folderName,
+          formName,
+          user: newUser,  // Set user as the last user value + 1 for all responses
+          buttonType,
+          content: element.content,  // Assuming content comes from the element in the form
+          response,
+          order,
+          timestamp: new Date(timestamp),  // Make sure to set timestamp
+        });
+
+        // Save the new response
+        await newResponse.save();
+
+        // Add the saved response to the array
+        savedResponses.push(newResponse);
+      }
+    }
+
+    // Return the saved responses array
+    res.status(200).json({ message: "Responses added successfully", responses: savedResponses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error adding responses", error: error.message });
+  }
+};
+
+const getFormResponses = async (req, res) => {
+  const { id } = req.params;  // The userId is sent as part of the URL params
+  const { folderName, formName } = req.query;  // folderName and formName are part of the query parameters
+  console.log("reached", folderName, formName);
+  // Validate userId
+  const userId = mongoose.Types.ObjectId.isValid(id)
+    ? new mongoose.Types.ObjectId(id)
+    : null;
+
+  if (!userId) {
+    return res.status(400).json({ message: "Invalid userId format" });
+  }
+
+  try {
+    // Fetch all responses for the given userId, folderName, and formName
+    const responses = await Response.find({ userId, folderName, formName });
+    console.log(responses);
+    if (!responses || responses.length === 0) {
+      return res.status(404).json({ message: "No responses found for the given form" });
+    }
+
+    // Return the found responses
+    res.status(200).json({ message: "Responses fetched successfully", responses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching responses", error: error.message });
   }
 };
 
@@ -356,26 +463,28 @@ const getFormContent = async (req, res) => {
     console.log("Reaching getFormContent");
 
     // Extract userId from route parameters
-    const { id} = req.params;
+    const { id } = req.params;
     console.log("UserId:", id);
 
     // Validate userId
-   const userId = mongoose.Types.ObjectId.isValid(id)
-   ? new mongoose.Types.ObjectId(id)
-   : null;
+    const userId = mongoose.Types.ObjectId.isValid(id)
+      ? new mongoose.Types.ObjectId(id)
+      : null;
 
- if (!userId) {
-   return res
-     .status(400)
-     .json({ message: "Invalid userId format" });
- }
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
+    }
     // Extract formName and folderName from query parameters
     const { formName, folderName } = req.query;
     console.log("formName:", formName, "folderName:", folderName);
 
     // Check if all required fields are provided
     if (!formName || !folderName) {
-      return res.status(400).json({ error: "Missing formName or folderName" });
+      return res
+        .status(400)
+        .json({ error: "Missing formName or folderName" });
     }
 
     // Query the database for the form
@@ -403,6 +512,84 @@ const getFormContent = async (req, res) => {
 };
 
 
+const updateAnalytics = async (req, res) => {
+  const { id } = req.params; // Extract user ID from the request parameters
+  const { folderName, formName, analytics } = req.body; // Extract folderName, formName, and analytics from the request body
+
+  // Validate the provided ID
+  const userId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
+  if (!userId) {
+    return res.status(400).json({ message: "Invalid userId format" });
+  }
+
+  try {
+    // Define the update operation based on the analytics value
+    let updateOperation = {};
+
+    if (analytics === "view") {
+      updateOperation = { $inc: { view: 1 } };
+    } else if (analytics === "start") {
+      updateOperation = { $inc: { start: 1 } };
+    } else if (analytics === "completed") {
+      updateOperation = { $inc: { completed: 1 } };
+    } else {
+      return res.status(400).json({ message: "Invalid analytics type" });
+    }
+
+    // Find the document to update or create a new one if it doesn't exist
+    const result = await Analytics.findOneAndUpdate(
+      { userId, folderName, formName },
+      updateOperation,
+      { new: true, upsert: true } // Create a new document if one doesn't exist
+    );
+    console.log(result);
+    // Send the updated document as the response
+    res.status(200).json({ message: "Analytics updated successfully", data: result });
+  } catch (error) {
+    console.error("Error updating analytics:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+const getAnalytics = async (req, res) => {
+  const { id } = req.params; // User ID from URL params
+  const { folderName, formName } = req.query; // Folder name and form name from query params
+
+  // Validate userId
+  const userId = mongoose.Types.ObjectId.isValid(id)
+    ? new mongoose.Types.ObjectId(id)
+    : null;
+
+  if (!userId) {
+    return res.status(400).json({ message: "Invalid userId format" });
+  }
+
+  try {
+    // Query the analytics data
+    const analyticsData = await Analytics.findOne({
+      userId: userId,
+      folderName: folderName,
+      formName: formName,
+    });
+
+    console.log("analyticsData", analyticsData);
+
+    if (!analyticsData) {
+      return res.status(404).json({ message: "Analytics data not found" });
+    }
+
+    // Send analytics data
+    res.status(200).json({
+      view: analyticsData.view,
+      start: analyticsData.start,
+      completed: analyticsData.completed,
+    });
+  } catch (error) {
+    // Handle errors
+    console.error("Error fetching analytics:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
 
 
 module.exports = {
@@ -413,4 +600,8 @@ module.exports = {
   deleteForm,
   updateFormContent,
   getFormContent,
+  addFormResponses,
+  getFormResponses,
+  updateAnalytics,
+  getAnalytics
 };
