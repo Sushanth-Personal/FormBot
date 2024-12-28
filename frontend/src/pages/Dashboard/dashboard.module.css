@@ -9,6 +9,7 @@
   --logout-color: #ffa54c;
   --folder-background: #ffffff;
   --folder-text-color: #000000;
+
 }
 
 [data-theme="light"] {
@@ -22,6 +23,7 @@
   --logout-color: #e68a3f;
   --folder-background: #18181b;
   --folder-text-color: #ffffff;
+  
 }
 
 /* Font sizes with clamp */

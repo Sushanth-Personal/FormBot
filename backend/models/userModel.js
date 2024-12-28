@@ -21,7 +21,17 @@ const authSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
-
+      accessibleWorkspace:[{
+          userId:{
+            type: mongoose.Schema.Types.ObjectId,
+            required: true
+          },
+          workspaceAccessToken: {
+            type: String,
+            required: true,
+          }
+        }
+      ]
     },
     { timestamps: true }
   );
@@ -45,7 +55,7 @@ authSchema.pre("save", async function (next) {
   authSchema.statics.login = async function (identifier, password) {
     const user = await this.findOne({
       $or: [
-        { userName: identifier },
+        { username: identifier },
         { email: identifier },
       ],
     },{password:1},{refreshToken:1});

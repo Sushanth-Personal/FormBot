@@ -11,10 +11,14 @@ import {
 } from "../../api/api";
 import useFetchFolders from "../../customHooks/useFetchFolders";
 import { useNavigate } from "react-router-dom";
-import {fetchUserData} from "../../api/api";
+import { fetchUserData } from "../../api/api";
+import Settings from "../../components/Settings/Settings";
+import ShareModal from "./components/ShareModal";
+import useFetchAccessibleWorkpaces from "../../customHooks/useFetchAccessibleWorkspaces";
 const Dashboard = () => {
   useAuth();
   useFetchFolders();
+  useFetchAccessibleWorkpaces();
 
   const navigate = useNavigate();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -27,10 +31,25 @@ const Dashboard = () => {
     useState(false); // Form delete modal
   const [formToDelete, setFormToDelete] = useState(""); // Form to delete
   const [formName, setFormName] = useState(""); // State for form name input
-  const { folders, setFolders, setSelectedForm,selectedFolder,setSelectedFolder } = useUserContext();
+  const {
+    folders,
+    setFolders,
+    setSelectedForm,
+    selectedFolder,
+    setSelectedFolder,
+    workspaces,
+    setWorkspaces,
+  } = useUserContext();
   const { theme, userData } = useUserContext();
   const [forms, setForms] = useState([]); // State to manage forms
   const [error, setError] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] =
+    useState("");
+  const [workspaceList, setWorkspaceList] = useState(
+    workspaces || []
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -40,9 +59,49 @@ const Dashboard = () => {
     console.log(forms);
   }, [forms]);
 
+  
+
+  useEffect(() => {
+    console.log(workspaces);
+    if(workspaces.length > 0){
+      setSelectedWorkspace(workspaces[0]);
+    }
+  }, [workspaces]);
+  
+  useEffect(() => {
+    console.log(selectedWorkspace);
+  }, [selectedWorkspace]);
   /**
    * Toggles the visibility of the dropdown menu
    */
+
+
+
+  const handleWorkspaceClick = async (workspaceId) => {
+    try {
+      const workspaceData = await fetchUserData(workspaceId);
+      if (workspaceData) {
+        setSelectedWorkspace(workspaceData);
+
+        // Reorder the workspaces array
+        const reorderedWorkspaces = workspaces.filter(
+          (id) => id !== workspaceId
+        );
+        setWorkspaceList([workspaces, ...reorderedWorkspaces]);
+
+        // Assuming folderForms needs to be fetched for the selected workspace
+        const folderForms =
+          JSON.parse(localStorage.getItem("folderForms")) || {};
+        const folderNamesArray = Object.keys(folderForms);
+        setFolders(folderNamesArray);
+        setForms([]);
+        setSelectedFolder("");
+      }
+    } catch (error) {
+      console.error("Error fetching workspace data:", error);
+    }
+  };
+
   const toggleDropdown = () => {
     setIsDropdownVisible((prev) => !prev);
   };
@@ -53,11 +112,11 @@ const Dashboard = () => {
 
   const handleFolderClick = (folderName) => {
     console.log("Selected folder:", folderName);
-    if(selectedFolder === folderName){
+    if (selectedFolder === folderName) {
       setSelectedFolder("");
       sessionStorage.removeItem("selectedFolder");
       return;
-    }else{
+    } else {
       setSelectedFolder(folderName);
       sessionStorage.setItem("selectedFolder", folderName);
     }
@@ -144,8 +203,6 @@ const Dashboard = () => {
     }
   };
 
-  //Form
-
   // Form modal handlers
   const handleCreateFormClick = () => {
     setIsFormModalOpen(true);
@@ -209,7 +266,6 @@ const Dashboard = () => {
     console.log(formName);
     setFormToDelete(formName);
     setIsFormDeleteModalOpen(true);
-
   };
 
   const handleCancelFormDelete = () => {
@@ -238,7 +294,7 @@ const Dashboard = () => {
         setFormToDelete(""); // Reset form name state
         return;
       }
-      
+
       console.log(currentFormData[selectedFolder]);
       // If the form is successfully deleted, update the form list
       setForms(currentFormData[selectedFolder]); // Assuming `setForms` updates the list of forms
@@ -258,247 +314,270 @@ const Dashboard = () => {
     navigate("/editor");
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/login");
+  };
+
   return (
-    <section className={styles.dashboard}>
-      <nav className={styles.navBar}>
-        <div className={styles.leftContainer}>
-          {!isDropdownVisible && (
-            <div
-              role="button"
-              onClick={toggleDropdown}
-              className={styles.workspaceSelector}
-            >
-              <h1>{`${userData.username}'s workspace`}</h1>
-              <img
-                className={styles.downArrow}
-                src={
-                  theme === "light"
-                    ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734862852/arrow-down-sign-to-navigate_pfxwn8.png"
-                    : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734852265/options_ffofkm.png"
-                }
-                alt="options"
-              />
-            </div>
-          )}
-          {isDropdownVisible && (
-            <div
-              role="button"
-              onClick={toggleDropdown}
-              className={styles.dropdown}
-            >
-              <ul>
-                <li>
-                  <p>{`${userData.username}'s workspace`}</p>
+    <>
+      {isSettingsOpen ? (
+        <Settings setIsSettingsOpen={setIsSettingsOpen} />
+      ) : (
+        <section className={styles.dashboard}>
+          <ShareModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+          />
+          <nav className={styles.navBar}>
+            <div className={styles.leftContainer}>
+              {!isDropdownVisible && (
+                <div
+                  role="button"
+                  onClick={toggleDropdown}
+                  className={styles.workspaceSelector}
+                >
+                  <h1>{`${selectedWorkspace.username}'s workspace`}</h1>
                   <img
+                    className={styles.downArrow}
                     src={
                       theme === "light"
-                        ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734862454/upload_qki06s.png"
-                        : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734853373/SVG_2_yxfzds.png"
+                        ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734862852/arrow-down-sign-to-navigate_pfxwn8.png"
+                        : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734852265/options_ffofkm.png"
                     }
                     alt="options"
                   />
-                </li>
-                <li>Settings</li>
-                <li>Log Out</li>
-              </ul>
+                </div>
+              )}
+              {isDropdownVisible && (
+                <div
+                  role="button"
+                  onClick={toggleDropdown}
+                  className={styles.dropdown}
+                >
+                  <ul>
+                   
+                    {console.log("workspaces",workspaces)}
+                    {workspaces &&
+                      workspaces.map((workspace) => (
+                        <li
+                          key={workspace.userId}
+                          onClick={() =>
+                            handleWorkspaceClick(workspace.userId)
+                          }
+                        >
+                          <p>{`${workspace.username}'s workspace`}</p>
+                        </li>
+                      ))}
+                    <li onClick={() => setIsSettingsOpen(true)}>
+                      Settings
+                    </li>
+                    <li onClick={handleLogout}>Log Out</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className={styles.rightContainer}>
+              <div className={styles.themeSelector}>
+                <label htmlFor="basic-switch">Light</label>
+                <Switch />
+                <label htmlFor="basic-switch">Dark</label>
+              </div>
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className={styles.share}
+              >
+                Share
+              </button>
+            </div>
+          </nav>
+          <div className={styles.workspace}>
+            <div className={styles.content}>
+              <div className={styles.folderNav}>
+                <ul>
+                  <li role="button" onClick={handleCreateFolderClick}>
+                    <img
+                      className={styles.createFolder}
+                      src={
+                        theme === "light"
+                          ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734924297/add-folder_w0os8e.png"
+                          : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734865182/SVG_3_fawuu1.png"
+                      }
+                      alt="create folder"
+                    />
+                    Create a folder
+                  </li>
+                  {folders.map((folder, index) => (
+                    <li
+                      onClick={() => handleFolderClick(folder)}
+                      className={
+                        folder === selectedFolder ? styles.active : ""
+                      }
+                      key={index}
+                    >
+                      {folder}
+                      <img
+                        role="button"
+                        onClick={() => confirmDeleteFolder(folder)}
+                        className={styles.deleteFolder}
+                        src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734865860/delete_obpnmw.png"
+                        alt="delete folder"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.formArea}>
+                <ul>
+                  <li role="button" onClick={handleCreateFormClick}>
+                    <img
+                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893036/SVG_4_zwan4q.png"
+                      alt="add"
+                    />
+                    <h3>Create a typebot</h3>
+                  </li>
+
+                  {selectedFolder &&
+                    forms.map((form, index) => (
+                      <li
+                        onClick={() => handleFormClick(form)}
+                        key={index}
+                      >
+                        {form}
+                        <img
+                          role="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            confirmDeleteForm(form);
+                          }}
+                          className={styles.deleteButton}
+                          src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
+                          alt="delete"
+                        />
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Folder Modal */}
+          {isFolderModalOpen && (
+            <div className={styles.Modal}>
+              <div className={styles.modalContent}>
+                <h3>Create New Folder</h3>
+                <input
+                  type="text"
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  placeholder="Enter folder name"
+                  className={styles.modalInput}
+                />
+                <p className={styles.error}>{error}</p>
+                <div className={styles.modalActions}>
+                  <div className={styles.leftSide}>
+                    <button
+                      onClick={handleFolderDone}
+                      className={styles.doneButton}
+                    >
+                      Done
+                    </button>
+                  </div>
+                  <div className={styles.rightSide}>
+                    <button
+                      onClick={handleCloseModal}
+                      className={styles.cancelButton}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
-        </div>
-        <div className={styles.rightContainer}>
-          <div className={styles.themeSelector}>
-            <label htmlFor="basic-switch">Light</label>
-            <Switch />
-            <label htmlFor="basic-switch">Dark</label>
-          </div>
-          <button className={styles.share}>Share</button>
-        </div>
-      </nav>
-      <div className={styles.workspace}>
-        <div className={styles.content}>
-          <div className={styles.folderNav}>
-            <ul>
-              <li role="button" onClick={handleCreateFolderClick}>
-                <img
-                  className={styles.createFolder}
-                  src={
-                    theme === "light"
-                      ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734924297/add-folder_w0os8e.png"
-                      : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734865182/SVG_3_fawuu1.png"
-                  }
-                  alt="create folder"
-                />
-                Create a folder
-              </li>
-              {folders.map((folder, index) => (
-                <li
-                  onClick={() => handleFolderClick(folder)}
-                  className={
-                    folder === selectedFolder ? styles.active : ""
-                  }
-                  key={index}
-                >
-                  {folder}
-                  <img
-                    role="button"
-                    onClick={() => confirmDeleteFolder(folder)}
-                    className={styles.deleteFolder}
-                    src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734865860/delete_obpnmw.png"
-                    alt="delete folder"
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className={styles.formArea}>
-            <ul>
-              <li role="button" onClick={handleCreateFormClick}>
-                <img
-                  src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893036/SVG_4_zwan4q.png"
-                  alt="add"
-                />
-                <h3>Create a typebot</h3>
-              </li>
 
-              {selectedFolder &&
-                forms.map((form, index) => (
-                  <li
-                    onClick={() => handleFormClick(form)}
-                    key={index}
+          {isDeleteModalOpen && (
+            <div className={styles.deleteModal}>
+              <div className={styles.modalContent}>
+                <h3>Are you sure you want to delete this folder?</h3>
+                <div className={styles.modalActions}>
+                  <button
+                    onClick={handleDeleteFolder}
+                    className={styles.doneButton}
                   >
-                    {form}
-                    <img
-                      role="button"
-                      onClick={(event) => 
-                      {
-                        event.stopPropagation();
-                        confirmDeleteForm(form);
-                      }
-                        }
-                      className={styles.deleteButton}
-                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
-                      alt="delete"
-                    />
-                  </li>
-                ))}
-            </ul>
-          </div>
-        </div>
-      </div>
+                    Yes
+                  </button>
+                  <button
+                    onClick={handleCancelDelete}
+                    className={styles.cancelButton}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Form Modal */}
+          {isFormModalOpen && (
+            <div className={styles.Modal}>
+              <div className={styles.modalContent}>
+                <h3>Create New Form</h3>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Enter form name"
+                  className={styles.modalInput}
+                />
+                <p className={styles.error}>{error}</p>
+                <div className={styles.modalActions}>
+                  <div className={styles.leftSide}>
+                    <button
+                      onClick={handleFormDone}
+                      className={styles.doneButton}
+                    >
+                      Done
+                    </button>
+                  </div>
+                  <div className={styles.rightSide}>
+                    <button
+                      onClick={handleCloseFormModal}
+                      className={styles.cancelButton}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-      {/* Folder Modal */}
-      {isFolderModalOpen && (
-        <div className={styles.Modal}>
-          <div className={styles.modalContent}>
-            <h3>Create New Folder</h3>
-            <input
-              type="text"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              placeholder="Enter folder name"
-              className={styles.modalInput}
-            />
-            <p className={styles.error}>{error}</p>
-            <div className={styles.modalActions}>
-              <div className={styles.leftSide}>
-                <button
-                  onClick={handleFolderDone}
-                  className={styles.doneButton}
-                >
-                  Done
-                </button>
-              </div>
-              <div className={styles.rightSide}>
-                <button
-                  onClick={handleCloseModal}
-                  className={styles.cancelButton}
-                >
-                  Cancel
-                </button>
+          {/* Form Delete Confirmation Modal */}
+          {isFormDeleteModalOpen && (
+            <div className={styles.deleteModal}>
+              <div className={styles.modalContent}>
+                <h3>Are you sure you want to delete this form?</h3>
+                <div className={styles.modalActions}>
+                  <button
+                    onClick={handleDeleteForm}
+                    className={styles.doneButton}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={handleCancelFormDelete}
+                    className={styles.cancelButton}
+                  >
+                    No
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+        </section>
       )}
-
-      {isDeleteModalOpen && (
-        <div className={styles.deleteModal}>
-          <div className={styles.modalContent}>
-            <h3>Are you sure you want to delete this folder?</h3>
-            <div className={styles.modalActions}>
-              <button
-                onClick={handleDeleteFolder}
-                className={styles.doneButton}
-              >
-                Yes
-              </button>
-              <button
-                onClick={handleCancelDelete}
-                className={styles.cancelButton}
-              >
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Form Modal */}
-      {isFormModalOpen && (
-        <div className={styles.Modal}>
-          <div className={styles.modalContent}>
-            <h3>Create New Form</h3>
-            <input
-              type="text"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="Enter form name"
-              className={styles.modalInput}
-            />
-            <p className={styles.error}>{error}</p>
-            <div className={styles.modalActions}>
-              <div className={styles.leftSide}>
-                <button
-                  onClick={handleFormDone}
-                  className={styles.doneButton}
-                >
-                  Done
-                </button>
-              </div>
-              <div className={styles.rightSide}>
-                <button
-                  onClick={handleCloseFormModal}
-                  className={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Form Delete Confirmation Modal */}
-      {isFormDeleteModalOpen && (
-        <div className={styles.deleteModal}>
-          <div className={styles.modalContent}>
-            <h3>Are you sure you want to delete this form?</h3>
-            <div className={styles.modalActions}>
-              <button
-                onClick={handleDeleteForm}
-                className={styles.doneButton}
-              >
-                Yes
-              </button>
-              <button
-                onClick={handleCancelFormDelete}
-                className={styles.cancelButton}
-              >
-                No
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+    </>
   );
 };
 

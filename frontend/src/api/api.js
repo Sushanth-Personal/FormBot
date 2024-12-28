@@ -137,14 +137,18 @@ export const registerUser = async (username, email, password) => {
 
 export const fetchUserData = async (userId) => {
   try {
+
     const response = await api.get(`/protected/user/${userId}`);
     console.log("fetchUserresponse", response);
     localStorage.setItem("folderForms", JSON.stringify(response.data.folderForms));
+    localStorage.setItem("userData", JSON.stringify(response.data.user));
     return response.data.user;
   } catch (error) {
+    localStorage.setItem("error", JSON.stringify(error));
     console.error("Error fetching user data:", error);
   }
 };
+
 
 export const createFolder = async (folderName) => {
   try {
