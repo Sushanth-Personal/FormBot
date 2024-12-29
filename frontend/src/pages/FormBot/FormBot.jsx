@@ -5,6 +5,8 @@ import ClipLoader from "react-spinners/ClipLoader";
 import { useRef } from "react";
 import { api } from "../../api/api";
 import { useNavigate } from "react-router-dom";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 const FormBot = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -453,16 +455,16 @@ const FormBot = () => {
             />
           )}
 
-          {showDatePicker && (
-            <div className={styles.datePickerContainer}>
-              <input
-                className={styles.datePicker}
-                type="date"
-                onChange={(e) => handleDateSelection(e.target.value)}
-                placeholder="Select a Date..."
-              />
-            </div>
-          )}
+{showDatePicker && (
+        <DatePicker
+          selected={tempDate}
+          onChange={handleDateSelection}
+          showTimeSelect
+          dateFormat="Pp"
+          className={styles.datePicker}
+          placeholderText="Select date and time"
+        />
+      )}
           {showDatePicker ? (
             <button
               disabled={showDatePicker && !tempDate}
