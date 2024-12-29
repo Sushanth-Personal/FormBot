@@ -353,7 +353,7 @@ const FormBot = () => {
   const submitFormResponses = () => {
     console.log("Responses:", responses);
     setIsLoading(true);
-    
+
     const timestamp = new Date();
 
     // Create an array of responses along with their flowData
@@ -453,6 +453,16 @@ const FormBot = () => {
             />
           )}
 
+          {showDatePicker && (
+            <div className={styles.datePickerContainer}>
+              <input
+                className={styles.datePicker}
+                type="date"
+                onChange={(e) => handleDateSelection(e.target.value)}
+                placeholder="Select a Date..."
+              />
+            </div>
+          )}
           {showDatePicker ? (
             <button
               disabled={showDatePicker && !tempDate}
@@ -480,14 +490,6 @@ const FormBot = () => {
               />
             </button>
           )}
-          {showDatePicker && (
-            <div className={styles.datePickerContainer}>
-              <input
-                type="date"
-                onChange={(e) => handleDateSelection(e.target.value)}
-              />
-            </div>
-          )}
         </div>
       )}
       {isSubmitButton && (
@@ -504,7 +506,6 @@ const FormBot = () => {
           </button>
         </div>
       )}
-    
     </div>
   );
 };
