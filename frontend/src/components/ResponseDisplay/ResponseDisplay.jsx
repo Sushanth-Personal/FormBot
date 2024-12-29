@@ -29,7 +29,13 @@ const ResponseDisplay = () => {
 
   const getAnalytics = async () => {
     try {
-      const response = await api.get(`/analytics/${userData._id}`, {
+      let userId;
+      if(sessionStorage.getItem("selectedWorkspace")){
+        userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+      }else{
+        userId=userData._id;
+      }
+      const response = await api.get(`/analytics/${userId}`, {
         params: {
           folderName: selectedFolder, // Set folderName
           formName: selectedForm, // Set formName
@@ -44,8 +50,14 @@ const ResponseDisplay = () => {
   // Function to fetch form responses from the backend
   const getFormResponses = async () => {
     try {
+      let userId;
+      if(sessionStorage.getItem("selectedWorkspace")){
+        userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+      }else{
+        userId=userData._id;
+      }
       const response = await api.get(
-        `/form/response/${userData._id}`,
+        `/form/response/${userId}`,
         {
           params: {
             folderName: selectedFolder, // Set folderName

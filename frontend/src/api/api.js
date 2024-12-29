@@ -137,11 +137,23 @@ export const registerUser = async (username, email, password) => {
 
 export const fetchUserData = async (userId) => {
   try {
-
-    const response = await api.get(`/protected/user/${userId}`);
+    console.log("userId", userId);
+    let isOtherWorkspaceData=false;
+    let currentId;
+    if(!userId){
+      isOtherWorkspaceData=true;
+      currentId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+    }else{
+      currentId = userId;
+    }
+    console.log("currentId", currentId);
+    const response = await api.get(`/protected/user/${currentId}`);
     console.log("fetchUserresponse", response);
     localStorage.setItem("folderForms", JSON.stringify(response.data.folderForms));
-    localStorage.setItem("userData", JSON.stringify(response.data.user));
+    if(isOtherWorkspaceData){
+      console.log("isOtherWorkspaceData",response.data.user);
+      sessionStorage.setItem("selectedWorkspace", JSON.stringify(response.data.user));
+    }
     return response.data.user;
   } catch (error) {
     localStorage.setItem("error", JSON.stringify(error));
@@ -152,7 +164,15 @@ export const fetchUserData = async (userId) => {
 
 export const createFolder = async (folderName) => {
   try {
-    const userId = localStorage.getItem("userId");
+    let userId;
+    const storedUserId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+    console.log("storedUserId", storedUserId);
+    if(!storedUserId){
+      userId= JSON.parse(localStorage.getItem("userData"))._id;
+    } else{
+      userId = storedUserId;
+    }
+    console.log("userId for creating folder", userId);
     if (!userId) {
       return "UserId not found";
     }
@@ -168,24 +188,46 @@ export const createFolder = async (folderName) => {
 
 export const deleteFolder = async (folderName) => {
   try {
-    const userId = localStorage.getItem("userId");
+    let userId;
+    if(sessionStorage.getItem("selectedWorkspace")){
+      userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+    }else{
+      userId=localStorage.getItem("userId");
+    }
+
     if (!userId) {
       return "UserId not found";
     }
-    console.log("folderName", folderName);
+
+    // Check if folderName contains the '@' symbol
+    if (folderName.includes('@')) {
+      return "Invalid folder name format";
+    }
+
+    
+    // Send the delete request with the folderName in the desired format
     const response = await api.delete(`/protected/folder/${userId}`, {
-      data: { folderName }, // Include folderName in the data property
+      data: { folderName: folderName }, // Include the modified folderName
     });
+
     console.log("deleteFolderresponse", response);
-    return response.data.folders;
+
+    return response.data;
   } catch (error) {
     console.error("Error deleting folder:", error);
   }
 };
 
+
 export const createForm = async (formName,folderName) => {
   try {
-    const userId = localStorage.getItem("userId");
+    let userId;
+    const currentId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+    if(!currentId){
+      userId= JSON.parse(localStorage.getItem("userData"))._id;
+    } else{
+      userId = currentId;
+    }
     if (!userId) {
       return "UserId not found";
     }
@@ -207,7 +249,13 @@ export const createForm = async (formName,folderName) => {
 
 export const deleteForm = async (formName,folderName) => {
   try {
-    const userId = localStorage.getItem("userId");
+    let userId;
+    const currentId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+    if(!currentId){
+      userId= JSON.parse(localStorage.getItem("userData"))._id;
+    } else{
+      userId = currentId;
+    }
     if (!userId) {
       return "UserId not found";
     }

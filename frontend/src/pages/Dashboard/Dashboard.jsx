@@ -17,8 +17,8 @@ import ShareModal from "./components/ShareModal";
 import useFetchAccessibleWorkpaces from "../../customHooks/useFetchAccessibleWorkspaces";
 const Dashboard = () => {
   useAuth();
-  useFetchFolders();
-  useFetchAccessibleWorkpaces();
+
+ 
 
   const navigate = useNavigate();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -39,18 +39,22 @@ const Dashboard = () => {
     setSelectedFolder,
     workspaces,
     setWorkspaces,
+    theme,
+    userData,
+    setUserData,
   } = useUserContext();
-  const { theme, userData } = useUserContext();
+
   const [forms, setForms] = useState([]); // State to manage forms
   const [error, setError] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [selectedWorkspace, setSelectedWorkspace] =
-    useState("");
+  const [selectedWorkspace, setSelectedWorkspace] = useState("");
   const [workspaceList, setWorkspaceList] = useState(
     workspaces || []
   );
 
+  useFetchAccessibleWorkpaces(setSelectedWorkspace);
+  useFetchFolders();
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
@@ -59,15 +63,12 @@ const Dashboard = () => {
     console.log(forms);
   }, [forms]);
 
-  
+useEffect(() => {
+  console.log(selectedWorkspace);
+}, [selectedWorkspace]);
 
-  useEffect(() => {
-    console.log(workspaces);
-    if(workspaces.length > 0){
-      setSelectedWorkspace(workspaces[0]);
-    }
-  }, [workspaces]);
-  
+
+
   useEffect(() => {
     console.log(selectedWorkspace);
   }, [selectedWorkspace]);
@@ -75,14 +76,13 @@ const Dashboard = () => {
    * Toggles the visibility of the dropdown menu
    */
 
-
-
   const handleWorkspaceClick = async (workspaceId) => {
     try {
       const workspaceData = await fetchUserData(workspaceId);
       if (workspaceData) {
+        console.log("workspaceData", workspaceData);
         setSelectedWorkspace(workspaceData);
-
+        sessionStorage.setItem("selectedWorkspace", JSON.stringify(workspaceData));
         // Reorder the workspaces array
         const reorderedWorkspaces = workspaces.filter(
           (id) => id !== workspaceId
@@ -96,6 +96,7 @@ const Dashboard = () => {
         setFolders(folderNamesArray);
         setForms([]);
         setSelectedFolder("");
+  
       }
     } catch (error) {
       console.error("Error fetching workspace data:", error);
@@ -152,7 +153,7 @@ const Dashboard = () => {
           navigate("/login");
           return;
         }
-
+        fetchUserData();
         console.log(currentFolderData);
         // Update the folder list with the new folder data
         setFolders(currentFolderData);
@@ -193,10 +194,10 @@ const Dashboard = () => {
       }
 
       console.log(currentFolderData);
-      setFolders(currentFolderData);
+      setFolders(currentFolderData.folders);
       setIsDeleteModalOpen(false);
       setFolderToDelete("");
-      fetchUserData(userData._id);
+      fetchUserData();
     } catch (error) {
       console.error("Error deleting folder:", error);
       alert("Failed to delete folder. Please try again.");
@@ -218,14 +219,16 @@ const Dashboard = () => {
     if (selectedFolder.trim()) {
       try {
         const folderForms =
-          JSON.parse(localStorage.getItem("folderForms")) || [];
-        if (
-          Object.values(folderForms).some((forms) =>
-            forms.includes(formName)
-          )
-        ) {
-          console.log("Form with this name already exists");
-          setError("Form with this name already exists");
+          JSON.parse(localStorage.getItem("folderForms")) || {};
+
+        // Check if the selected folder contains the formName
+        if (folderForms[selectedFolder]?.includes(formName)) {
+          console.log(
+            "Form with this name already exists in the selected folder"
+          );
+          setError(
+            "Form with this name already exists in the selected folder"
+          );
           return;
         }
 
@@ -244,9 +247,12 @@ const Dashboard = () => {
           setError("Form already exists");
           return;
         }
+
+        console.log(selectedFolder);
         // Update the folder list with the new folder data
         setForms(currentFormData[selectedFolder]);
-        fetchUserData(userData._id);
+
+        fetchUserData();
         console.log("Form created successfully:", currentFormData);
 
         // Close the modal after successful creation
@@ -292,16 +298,17 @@ const Dashboard = () => {
         setForms([]);
         setIsFormDeleteModalOpen(false);
         setFormToDelete(""); // Reset form name state
+        fetchUserData();
         return;
       }
 
       console.log(currentFormData[selectedFolder]);
       // If the form is successfully deleted, update the form list
       setForms(currentFormData[selectedFolder]); // Assuming `setForms` updates the list of forms
-      fetchUserData(userData._id);
       // Close the modal and reset the form state
       setIsFormDeleteModalOpen(false);
       setFormToDelete(""); // Reset form name state
+      fetchUserData();
     } catch (error) {
       console.error("Error deleting form:", error);
       alert("Failed to delete form. Please try again.");
@@ -357,8 +364,7 @@ const Dashboard = () => {
                   className={styles.dropdown}
                 >
                   <ul>
-                   
-                    {console.log("workspaces",workspaces)}
+                    {console.log("workspaces", workspaces)}
                     {workspaces &&
                       workspaces.map((workspace) => (
                         <li

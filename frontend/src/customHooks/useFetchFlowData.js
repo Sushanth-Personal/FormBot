@@ -4,7 +4,7 @@ import { useUserContext } from "../Contexts/UserContext";
 /**
  * Custom hook to fetch flow button data from the backend and cache it in sessionStorage.
  */
-const useFetchFlowData = () => {
+const useFetchFlowData = (id) => {
   const {
     userData,
     selectedFolder,
@@ -17,10 +17,20 @@ const useFetchFlowData = () => {
 
     const fetchData = async () => {
       try {
-        if (!userData._id) return;
+        let userId;
+        if(!id){
+          if(sessionStorage.getItem("selectedWorkspace")){
+            userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id
+          }else{
+            userId=userData._id;
+          }}
+        else{
+          userId=id;
+        }
+       
         console.log("Reached", selectedFolder, selectedForm);
         const response = await api.get(
-          `/protected/form/${userData._id}`,
+          `/protected/form/${userId}`,
           {
             params: {
               formName: selectedForm,

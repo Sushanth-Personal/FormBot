@@ -18,7 +18,12 @@ const Settings = ({ setIsSettingsOpen }) => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isFormUpdated, setIsFormUpdated] = useState(false);
-
+  const [error, setError] = useState({
+    username: "",
+    email: "",
+    oldPassword: "",
+    newPassword: "",
+  });
   const { userData, setUserData, theme } = useUserContext();
 
   useEffect(() => {
@@ -26,10 +31,12 @@ const Settings = ({ setIsSettingsOpen }) => {
   }, [theme]);
 
   useEffect(() => {
-    const updatedUserData = localStorage.getItem("userData");
+    const updatedUserData = JSON.parse(
+      localStorage.getItem("userData")
+    );
     console.log("updated", updatedUserData);
     if (updatedUserData) {
-      setUserData(JSON.parse(updatedUserData));
+      setUserData(updatedUserData);
     }
   }, [isFormUpdated]);
 
@@ -63,6 +70,60 @@ const Settings = ({ setIsSettingsOpen }) => {
 
   // Handle form submission (Update action)
   const handleUpdate = async () => {
+    if (!formData.username || !formData.email) {
+      setError({
+        ...error,
+        username: !formData.username ? "Username is required" : "",
+        email: !formData.email ? "Email is required" : "",
+      });
+
+      return;
+    }
+
+    if (formData.newPassword && !formData.oldPassword) {
+      setError({
+        ...error,
+        oldPassword: "Please enter your current password.",
+        newPassword:
+          formData.newPassword.length >= 8
+            ? ""
+            : "Password must be at least 8 characters long.",
+      });
+      return;
+    }
+
+    if (formData.oldPassword && !formData.newPassword) {
+      setError({
+        ...error,
+        newPassword: "Please enter a new password.",
+        oldPassword:
+          formData.oldPassword.length >= 8
+            ? ""
+            : "Password must be at least 8 characters long.",
+      });
+      return;
+    }
+
+    if (formData.newPassword && formData.oldPassword) {
+      if (
+        formData.newPassword.length < 8 ||
+        formData.oldPassword.length < 8
+      ) {
+        setError({
+          ...error,
+          newPassword:
+            formData.newPassword.length >= 8
+              ? ""
+              : "Password must be at least 8 characters long.",
+          oldPassword:
+            formData.oldPassword.length >= 8
+              ? ""
+              : "Password must be at least 8 characters long.",
+        });
+        return;
+      }
+    }
+
     try {
       // Make the API call to update user information
       const response = await api.put(
@@ -78,9 +139,16 @@ const Settings = ({ setIsSettingsOpen }) => {
       // Handle successful update
       if (response.status === 200) {
         alert("User updated successfully!");
-        fetchUserData(userData._id).then(() => {
-          setIsFormUpdated(true);
-        });
+
+        // Fetch updated user data
+        const updatedUserData = await fetchUserData(userData._id);
+        console.log("updatedUserData", updatedUserData);
+        // Update state and session storage
+        setIsFormUpdated(true);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify(updatedUserData)
+        );
 
         // Optionally, update local state or UI to reflect changes
       } else {
@@ -91,24 +159,6 @@ const Settings = ({ setIsSettingsOpen }) => {
     } catch (error) {
       // Handle errors gracefully
       console.error("Error updating user:", error);
-
-      // Provide user feedback
-      if (error.response) {
-        // Server responded with a status outside 2xx
-        alert(
-          `Update failed: ${
-            error.response.data.error || "Server error"
-          }`
-        );
-      } else if (error.request) {
-        // Request was made but no response received
-        alert(
-          "Update failed: No response from server. Please try again."
-        );
-      } else {
-        // Other errors
-        alert(`Update failed: ${error.message}`);
-      }
     }
   };
 
@@ -138,6 +188,7 @@ const Settings = ({ setIsSettingsOpen }) => {
           <div className={styles.form}>
             <div className={styles.inputWrapper}>
               <input
+                className={error.username && styles.error}
                 type="text"
                 id="username"
                 name="username"
@@ -150,10 +201,12 @@ const Settings = ({ setIsSettingsOpen }) => {
                 src="https://res.cloudinary.com/dtu64orvo/image/upload/v1735293922/Frame_1036_xbijry.svg" // Replace with actual icon
                 alt="icon"
               />
+              <p className={styles.error}>{error.username}</p>
             </div>
 
             <div className={styles.inputWrapper}>
               <input
+                className={error.email && styles.error}
                 type="email"
                 id="email"
                 name="email"
@@ -166,10 +219,12 @@ const Settings = ({ setIsSettingsOpen }) => {
                 src="https://res.cloudinary.com/dtu64orvo/image/upload/v1735294021/icons8-email-50_1_cezeil.png" // Replace with actual icon
                 alt="icon"
               />
+              <p className={styles.error}>{error.email}</p>
             </div>
 
             <div className={styles.inputWrapper}>
               <input
+                className={error.oldPassword && styles.error}
                 type={showOldPassword ? "text" : "password"}
                 id="password"
                 name="oldPassword"
@@ -189,10 +244,12 @@ const Settings = ({ setIsSettingsOpen }) => {
                 role="button"
                 onClick={handleViewOldPassword}
               />
+              <p className={styles.error}>{error.oldPassword}</p>
             </div>
 
             <div className={styles.inputWrapper}>
               <input
+                className={error.newPassword && styles.error}
                 type={showNewPassword ? "text" : "password"}
                 id="newPassword"
                 name="newPassword"
@@ -212,6 +269,7 @@ const Settings = ({ setIsSettingsOpen }) => {
                 role="button"
                 onClick={handleViewNewPassword}
               />
+              <p className={styles.error}>{error.newPassword}</p>
             </div>
           </div>
           <button

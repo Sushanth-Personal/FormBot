@@ -1,12 +1,13 @@
 import styles from "./formeditor.module.css";
 import { useUserContext } from "../../Contexts/UserContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Switch from "../../components/Switch/Switch";
-import { api } from "../../api/api";
+import { api, fetchUserData } from "../../api/api";
 import useAuth from "../../customHooks/useAuth";
 import useFetchFlowData from "../../customHooks/useFetchFlowData";
 import ResponseDisplay from "../../components/ResponseDisplay/ResponseDisplay";
+
 const FormEditor = () => {
   useAuth();
   useFetchFlowData();
@@ -27,6 +28,8 @@ const FormEditor = () => {
   const [isResponseClicked, setIsResponseClicked] = useState(false);
   const [error, setError] = useState("Required field");
   const [selectedTool, setSelectedTool] = useState(null);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const saveModalRef = useRef(null);
   const count = {
     TextInput: 0,
     Number: 0,
@@ -106,37 +109,70 @@ const FormEditor = () => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (saveModalRef.current && !saveModalRef.current.contains(event.target)) {
+        closeModal();
+      }
+    };
+
+    if (isSaveModalOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  },[isSaveModalOpen]);
+
+  const closeModal = () => {
+    setIsSaveModalOpen(false); // Update your modal state here
+  };
+
   const handleInputBlur = () => {
     changeFormName();
   };
 
   const changeFormName = async () => {
     const folderForms =
-    JSON.parse(localStorage.getItem("folderForms")) || [];
-  if (
-    Object.values(folderForms).some((forms) =>
-      forms.includes(currentForm)
-    )
-  ) {
-    console.log("Form with this name already exists");
-    alert("Form with this name already exists");
-    setCurrentForm(selectedForm);
-    return;
-  }
+      JSON.parse(localStorage.getItem("folderForms")) || [];
+    if (
+      Object.values(folderForms).some((forms) =>
+        forms.includes(currentForm)
+      )
+    ) {
+      console.log("Form with this name already exists");
+      alert("Form with this name already exists");
+      setCurrentForm(selectedForm);
+      return;
+    }
 
     try {
-      const response = await api.put(`/protected/form/${userData._id}`, {
-        formName: selectedForm,
-        folderName: selectedFolder,
-        newFormName: currentForm,
-      });
-    
+      let userId;
+      if(sessionStorage.getItem("selectedWorkspace")){
+        userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+      }else{
+        userId = userData._id;
+      }
+      if(!userId){
+        return;
+      }
+      const response = await api.put(
+        `/protected/form/${userId}`,
+        {
+          formName: selectedForm,
+          folderName: selectedFolder,
+          newFormName: currentForm,
+        }
+      );
+
       console.log(response);
       if (response.status === 200) {
         console.log(response);
         setSelectedForm(currentForm);
         sessionStorage.setItem("selectedForm", currentForm);
         setIsInputSelected(false);
+        await fetchUserData();
       }
     } catch (error) {
       console.error("error updating formName", error);
@@ -240,15 +276,25 @@ const FormEditor = () => {
 
     console.log("payload", payload, selectedFolder, selectedForm);
 
+    const selectedWorkspace = JSON.parse(
+      sessionStorage.getItem("selectedWorkspace")
+    );
+    let userId;
+    if (!selectedWorkspace) {
+      userId = userData._id;
+    } else {
+      userId = selectedWorkspace._id;
+    }
     // Send the data to the backend using axios
     api
-      .put(`/protected/form/${userData._id}`, {
+      .put(`/protected/form/${userId}`, {
         formName: selectedForm,
         folderName: selectedFolder,
         elements: payload, // Send the updated flow data to backend
       })
       .then((response) => {
         console.log("Data saved successfully", response.data);
+        setIsSaveModalOpen(true);
         // Optionally, show success message, navigate, etc.
       })
       .catch((error) => {
@@ -258,8 +304,14 @@ const FormEditor = () => {
   };
 
   const handleShare = () => {
+    let userId;
+    if(sessionStorage.getItem("selectedWorkspace")){
+      userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
+    }else{
+      userId=userData._id;
+    }
     // Construct a URL with minimal query parameters
-    const link = `${window.location.origin}/formbot?formName=${selectedForm}&folderName=${selectedFolder}&userId=${userData._id}`;
+    const link = `${window.location.origin}/formbot?formName=${selectedForm}&folderName=${selectedFolder}&userId=${userId}`;
 
     navigator.clipboard
       .writeText(link)
@@ -566,6 +618,13 @@ const FormEditor = () => {
 
         {!isFlowClicked && isResponseClicked && <ResponseDisplay />}
       </main>
+      {isSaveModalOpen &&(
+        <div className = {styles.saveModal}
+        ref={saveModalRef}
+        >
+        <h1>Saved Successfully</h1>
+        </div>
+      )}
     </section>
   );
 };

@@ -108,15 +108,13 @@ const getWorkSpaces = async (req, res) => {
     // Fetch the user by ID
     const user = await User.findById(userId);
 
-    // If no user is found, return a 404 error
     if (!user) {
-      return res.status(404).json({ error: "User not found." });
+      return res.status(404).json({ message: "User not found." });
     }
 
-    // Fetch accessibleWorkspace
     const accessibleWorkspace = user.accessibleWorkspace;
 
-    // Decode the workspaceAccessToken to find the email
+    // Map to fetch workspace details
     const workspaceDetails = await Promise.all(
       accessibleWorkspace.map(async (workspace) => {
         try {
@@ -126,8 +124,6 @@ const getWorkSpaces = async (req, res) => {
           );
 
           const email = decodedToken.email;
-          console.log("email", email);
-          // Find the user associated with the email
           const recipient = await User.findOne({ email });
 
           if (recipient) {
@@ -139,11 +135,11 @@ const getWorkSpaces = async (req, res) => {
           } else {
             return {
               userId: workspace.userId,
-              error: "User not found for the decoded email.",
+              error: `No user found for email: ${email}`,
             };
           }
         } catch (error) {
-          console.error("Error decoding token:", error);
+          console.error("Token verification error:", error.message);
           return {
             userId: workspace.userId,
             error: "Invalid or expired token.",
@@ -152,15 +148,28 @@ const getWorkSpaces = async (req, res) => {
       })
     );
 
-    return res.status(200).json(workspaceDetails);
+    // Add current user as the first workspace with "edit" permission
+    const currentUserWorkspace = {
+      userId: userId.toString(),
+      username: user.username,
+      permission: "edit",
+    };
+
+    // Prepend the current user workspace to the workspaceDetails array
+    workspaceDetails.unshift(currentUserWorkspace);
+
+    // Return workspace details
+    return res.status(200).json({
+      message: "Workspaces fetched successfully",
+      workspaces: workspaceDetails,
+    });
   } catch (error) {
-    console.error("Error fetching accessibleWorkspace:", error);
-    return res.status(500).json({ error: "Internal server error." });
+    console.error("Error fetching workspaces:", error.message);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
 const getUser = async (req, res) => {
- 
   const { id } = req.params;
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -182,33 +191,28 @@ const getUser = async (req, res) => {
     // Decode the token
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     const userIdFromToken = decodedToken?.id;
-    console.log("userIdFromToken", userIdFromToken);
 
     if (!mongoose.Types.ObjectId.isValid(userIdFromToken)) {
       return res.status(403).json({ message: "Invalid or corrupted token." });
     }
-    console.log("userIdFromParams", userIdFromParams, userIdFromToken);
+
     // Check if the `userId` in the token matches the `userId` in params
     if (!userIdFromParams.equals(new mongoose.Types.ObjectId(userIdFromToken))) {
-      console.log("They are not equal", new mongoose.Types.ObjectId(userIdFromToken));
-      // Find the user by `userId` from the token
       const tokenUser = await User.findById(new mongoose.Types.ObjectId(userIdFromToken));
-      console.log("tokenUser", tokenUser);
       if (!tokenUser) {
         return res.status(404).json({ error: "User not found." });
       }
-      console.log("userIdFromParams", userIdFromParams);
+
       // Check if the `userIdFromParams` exists in the `accessibleWorkspaces` array of the user from the token
       const hasAccess = tokenUser.accessibleWorkspace.some((workspace) =>
-        workspace.userId.equals(userIdFromParams) // Ensure userIdFromParams is an ObjectId
+        workspace.userId.equals(userIdFromParams)
       );
-      
+
       if (!hasAccess) {
         return res.status(403).json({ error: "Access denied: No permission to access this user." });
       }
     }
-    
-    console.log("userIdFromParams to going to find user", userIdFromParams);
+
     // Fetch the user by ID (either from params or confirmed via accessibleWorkspaces)
     const user = await User.findById(userIdFromParams);
 
@@ -228,25 +232,34 @@ const getUser = async (req, res) => {
         userId: userIdFromParams,
         folderName: folder.name,
       }).select("formName -_id");
-      folderForms[folder.name] = forms.map((form) => form.formName);
+
+      // Process the `formName` to extract the original name before returning
+      folderForms[folder.name] = forms.map((form) => form.formName.split("@")[0]);
     }
 
     // Respond with the user data and structured folder-to-forms mapping
+    // Strip @userId from folder names and form names in the response
+    const responseFolderForms = Object.keys(folderForms).reduce((acc, folder) => {
+      // Remove @userId from the folder name
+      const cleanFolderName = folder.split("@")[0];
+      // Map the forms for this folder, removing @userId from each form name
+      acc[cleanFolderName] = folderForms[folder].map(form => form.split("@")[0]);
+      return acc;
+    }, {});
+
     res.status(200).json({
       user,
-      folders: folders.map((f) => f.name),
-      folderForms,
+      folders: folders.map((f) => f.name.split("@")[0]),  // Removing @userId from folder names
+      folderForms: responseFolderForms,  // Clean folder names and form names
     });
   } catch (error) {
     // Handle errors (token decoding, DB queries, etc.)
     console.error("Error fetching user or validating access:", error.message);
     res.status(500).json({
-      error:
-        "An unexpected error occurred while fetching the user, folders, or forms.",
+      error: "An unexpected error occurred while fetching the user, folders, or forms.",
     });
   }
 };
-
 
 
 const updateUser = async (req, res) => {
@@ -317,38 +330,41 @@ const createFolder = async (req, res) => {
     return res.status(400).json({ message: "Invalid userId format" });
   }
 
+  // Check if folderName contains the '@' symbol
+  if (folderName.includes('@')) {
+    return res.status(400).json({ message: "Folder name cannot contain the '@' symbol" });
+  }
+
   try {
-    // Create a new folder associated with the userId
-    const newFolder = new Folder({ name: folderName, userId });
+    // Create a new folder associated with the userId in the format folderName@userId
+    const folderNameWithUserId = `${folderName}@${userId}`;
+    const newFolder = new Folder({ name: folderNameWithUserId, userId });
     await newFolder.save();
 
     // Retrieve all folders associated with the userId
     const userFolders = await Folder.find({ userId }).select("name"); // Only select folder names
 
-    // Map to get an array of folder names
-    const folderNames = userFolders.map((folder) => folder.name);
+    // Map to get an array of folder names in the original format (without the @userId part)
+    const folderNames = userFolders.map((folder) => folder.name.split('@')[0]);
 
     // Respond with the array of folder names
     res.status(201).json(folderNames);
   } catch (error) {
     // Log the error for debugging
-    console.error(
-      "Error creating folder or retrieving folders:",
-      error.message
-    );
+    console.error("Error creating folder or retrieving folders:", error.message);
 
     // Handle server errors
     res.status(500).json({
-      error:
-        "An unexpected error occurred while processing the request.",
+      error: "An unexpected error occurred while processing the request.",
     });
   }
 };
 
+
 const deleteFolder = async (req, res) => {
-  const { folderName } = req.body;
-  const { id } = req.params; // userId
-  console.log("folderName", folderName);
+  const { folderName } = req.body; // Extract folderName from request body
+  const { id } = req.params; // Extract userId from URL parameters
+  console.log("folderName:", folderName);
 
   // Validate userId
   const userId = mongoose.Types.ObjectId.isValid(id)
@@ -360,81 +376,99 @@ const deleteFolder = async (req, res) => {
   }
 
   try {
-    // Delete the folder associated with the userId
+    // Append userId to folderName for uniqueness
+    const formattedFolderName = `${folderName}@${userId}`;
+
+    // Delete the folder associated with the formattedFolderName and userId
     const deletedFolder = await Folder.findOneAndDelete({
-      name: folderName,
-      userId: userId,
+      name: formattedFolderName,
+      userId,
     });
 
     if (!deletedFolder) {
       return res.status(404).json({ error: "Folder not found." });
     }
 
+    // Find all forms associated with the folder and userId
+    const formsToDelete = await Form.find({
+      folderName: formattedFolderName,
+      userId,
+    });
+
+    // Extract form names to delete responses and analytics
+    const formNamesToDelete = formsToDelete.map((form) => form.formName);
+
     // Delete all forms associated with the folder
-    const deletedForms = await Form.deleteMany({
-      folderName: folderName,
-      userId: userId,
+    await Form.deleteMany({
+      folderName: formattedFolderName,
+      userId,
     });
 
-    // Delete associated Response and Analytics entries
+    // Delete associated responses
     await Response.deleteMany({
-      formName: { $in: deletedForms.map((form) => form.formName) },
-      folderName: folderName,
-      userId: userId,
+      folderName: formattedFolderName,
+      userId,
+      formName: { $in: formNamesToDelete },
     });
 
+    // Delete associated analytics
     await Analytics.deleteMany({
-      formName: { $in: deletedForms.map((form) => form.formName) },
-      folderName: folderName,
-      userId: userId,
+      folderName: formattedFolderName,
+      userId,
+      formName: { $in: formNamesToDelete },
     });
 
+    // Retrieve the remaining forms for the user
     const formsByFolder = await Form.find({ userId }).select(
       "formName folderName -_id"
     );
 
+    // Build a folder-to-forms mapping
     const folderForms = {};
     formsByFolder.forEach((form) => {
-      if (!folderForms[form.folderName]) {
-        folderForms[form.folderName] = [];
+      const originalFolderName = form.folderName.split("@")[0]; // Remove userId from folderName
+      if (!folderForms[originalFolderName]) {
+        folderForms[originalFolderName] = [];
       }
-      folderForms[form.folderName].push(form.formName);
+      folderForms[originalFolderName].push(form.formName.split("@")[0]);
     });
 
-    // Include folders that have no forms (empty folders)
+    // Include folders without forms
     const folders = await Folder.find({ userId }).select("name -_id");
-    const folderNames = folders.map((f) => f.name);
+    const folderNames = folders.map((folder) =>
+      folder.name.split("@")[0] // Remove userId from folderName
+    );
 
-    // Ensure every folder is represented, even if empty
-    folderNames.forEach((folderName) => {
-      if (!folderForms[folderName]) {
-        folderForms[folderName] = []; // Initialize empty array for folders without forms
+    folderNames.forEach((originalFolderName) => {
+      if (!folderForms[originalFolderName]) {
+        folderForms[originalFolderName] = []; // Ensure empty folders are represented
       }
     });
-
-    // Respond with folders and folder-to-forms mapping
-    res.status(200).json({ folders: folderNames, folderForms });
+    console.log(folderForms);
+    // Respond with updated folder data
+    res.status(200).json({
+      folders: folderNames, // folder names without userId part
+      folderForms,
+    });
   } catch (error) {
     // Log the error for debugging
-    console.error(
-      "Error deleting folder or retrieving folders:",
-      error.message
-    );
+    console.error("Error deleting folder or retrieving folders:", error.message);
 
     // Handle server errors
     res.status(500).json({
-      error:
-        "An unexpected error occurred while processing the request.",
+      error: "An unexpected error occurred while processing the request.",
     });
   }
 };
+
+
+
 
 // Create a new form
 const createForm = async (req, res) => {
   try {
     const { formName, folderName } = req.body; // Extract data from the request body
     const { id } = req.params; // userId
-    console.log(formName, folderName);
 
     // Validate userId
     const userId = mongoose.Types.ObjectId.isValid(id)
@@ -442,16 +476,25 @@ const createForm = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res
-        .status(400)
-        .json({ message: "Invalid userId format" });
+      return res.status(400).json({ message: "Invalid userId format" });
     }
+
+    // Validate formName
+    if (!formName || formName.includes("@")) {
+      return res.status(400).json({
+        message: "Invalid formName. The name must not include '@'.",
+      });
+    }
+
+    // Generate the formatted formName (includes folderName and userId)
+    const formattedFormName = `${formName}@${folderName}@${userId}`;
+    console.log("formattedFormName", formattedFormName);
 
     // Create a new form linked to the folder and user
     const form = new Form({
-      formName,
-      userId, // Ensure the form is linked to the correct user
-      folderName,
+      formName: formattedFormName,
+      userId,
+      folderName: `${folderName}@${userId}`, // Store folder name with @userId format
     });
 
     await form.save(); // Save the form
@@ -463,24 +506,35 @@ const createForm = async (req, res) => {
 
     const folderForms = {};
     formsByFolder.forEach((form) => {
-      if (!folderForms[form.folderName]) {
-        folderForms[form.folderName] = [];
+      // Clean the folder name (remove @userId)
+      const cleanedFolderName = form.folderName.split("@")[0];
+      
+      if (!folderForms[cleanedFolderName]) {
+        folderForms[cleanedFolderName] = [];
       }
-      folderForms[form.folderName].push(form.formName);
+
+      // Split the formatted formName and return only the original name (remove @userId)
+      const originalFormName = form.formName.split("@")[0];
+      folderForms[cleanedFolderName].push(originalFormName);
     });
 
-    // Retrieve all folder names associated with the user
+    // Retrieve all folder names associated with the user and remove @userId from the folder name
     const folders = await Folder.find({ userId }).select("name -_id");
 
+    // Clean the folder names (remove @userId part)
+    const cleanedFolders = folders.map((f) => f.name.split("@")[0]);
+
     // Respond with the folder names array and folder-to-forms mapping
-    res
-      .status(200)
-      .json({ folders: folders.map((f) => f.name), folderForms });
+    res.status(200).json({
+      folders: cleanedFolders, // Return cleaned folder names
+      folderForms, // Return folder-wise forms with cleaned folder names
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error creating form", error });
   }
 };
+
 
 const deleteForm = async (req, res) => {
   try {
@@ -493,25 +547,23 @@ const deleteForm = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res
-        .status(400)
-        .json({ message: "Invalid userId format" });
+      return res.status(400).json({ message: "Invalid userId format" });
     }
 
     // Check if folder exists
     const folderExists = await Folder.findOne({
       userId,
-      name: folderName,
+      name: `${folderName}@${userId}`, // Check formatted folderName
     });
     if (!folderExists) {
       return res.status(404).json({ error: "Folder not found." });
     }
 
-    // Delete the specified form
+    // Delete the specified form (using the full formatted formName)
     const deletedForm = await Form.findOneAndDelete({
       userId,
-      folderName,
-      formName,
+      folderName: `${folderName}@${userId}`, // Match formatted folderName
+      formName: `${formName}@${folderName}@${userId}`, // Match formatted formName
     });
 
     if (!deletedForm) {
@@ -521,53 +573,56 @@ const deleteForm = async (req, res) => {
     // Delete corresponding analytics and responses
     await Analytics.deleteMany({
       userId,
-      formName,
-      folderName,
+      formName: `${formName}@${folderName}@${userId}`, // Match formatted formName
+      folderName: `${folderName}@${userId}`, // Match formatted folderName
     });
 
     await Response.deleteMany({
       userId,
-      formName,
-      folderName,
+      formName: `${formName}@${folderName}@${userId}`, // Match formatted formName
+      folderName: `${folderName}@${userId}`, // Match formatted folderName
     });
 
-    // Fetch all forms and group them by folder
+    // Fetch all forms and group them by cleaned folder name
     const formsByFolder = await Form.find({ userId }).select(
       "formName folderName -_id"
     );
 
     const folderForms = {};
     formsByFolder.forEach((form) => {
-      if (!folderForms[form.folderName]) {
-        folderForms[form.folderName] = [];
+      // Clean the folder name (remove @userId)
+      const cleanedFolderName = form.folderName.split("@")[0];
+
+      if (!folderForms[cleanedFolderName]) {
+        folderForms[cleanedFolderName] = [];
       }
-      folderForms[form.folderName].push(form.formName);
+
+      // Clean the form name (remove @folderName and @userId)
+      const originalFormName = form.formName.split("@")[0];
+      folderForms[cleanedFolderName].push(originalFormName);
     });
 
     // Include folders that have no forms (empty folders)
     const folders = await Folder.find({ userId }).select("name -_id");
-    const folderNames = folders.map((f) => f.name);
+    const cleanedFolderNames = folders.map((f) => f.name.split("@")[0]); // Clean folder names
 
     // Ensure every folder is represented, even if empty
-    folderNames.forEach((folderName) => {
-      if (!folderForms[folderName]) {
-        folderForms[folderName] = []; // Initialize empty array for folders without forms
+    cleanedFolderNames.forEach((folder) => {
+      if (!folderForms[folder]) {
+        folderForms[folder] = []; // Initialize empty array for folders without forms
       }
     });
 
-    // Respond with folders and folder-to-forms mapping
-    res.status(200).json({ folders: folderNames, folderForms });
+    // Respond with cleaned folder names and folder-to-forms mapping
+    res.status(200).json({ folders: cleanedFolderNames, folderForms });
   } catch (error) {
-    console.error(
-      "Error deleting form or retrieving forms:",
-      error.message
-    );
+    console.error("Error deleting form or retrieving forms:", error.message);
     res.status(500).json({
-      error:
-        "An unexpected error occurred while processing the request.",
+      error: "An unexpected error occurred while processing the request.",
     });
   }
 };
+
 
 const updateFormContent = async (req, res) => {
   try {
@@ -582,61 +637,77 @@ const updateFormContent = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res
-        .status(400)
-        .json({ message: "Invalid userId format" });
+      return res.status(400).json({ message: "Invalid userId format" });
     }
 
     // Destructure data from the request body
     const { formName, folderName, elements, newFormName } = req.body;
     console.log(formName, folderName, elements);
+
+    // Validate required fields
+    if (!formName || !folderName) {
+      return res.status(400).json({ error: "Missing required formName or folderName" });
+    }
+
+    // Generate the current formatted formName and folderName
+    const formattedFolderName = `${folderName}@${userId}`;
+    const currentFormattedFormName = `${formName}@${folderName}@${userId}`;
+
     if (newFormName) {
       try {
+        // Generate the new formatted formName
+        const newFormattedFormName = `${newFormName}@${folderName}@${userId}`;
+
+        // Find the existing form using the current formatted formName
         const existingForm = await Form.findOne({
-          formName,
+          formName: currentFormattedFormName,
           userId,
-          folderName,
+          folderName: formattedFolderName,
         });
-        if (existingForm) {
-          existingForm.formName = newFormName;
 
-          await Analytics.updateMany(
-            { userId, formName, folderName },
-            { $set: { formName: newFormName } }
-          );
-
-          await Response.updateMany(
-            { userId, formName, folderName },
-            { $set: { formName: newFormName } }
-          );
-
-          await existingForm.save();
-          return res
-            .status(200)
-            .json({ message: "Form name updated successfully" });
-        } else {
+        if (!existingForm) {
           return res.status(404).json({ error: "Form not found" });
         }
+
+        // Update the form name
+        existingForm.formName = newFormattedFormName;
+
+        // Update related analytics and responses with the new formName
+        await Analytics.updateMany(
+          { userId, formName: currentFormattedFormName, folderName: formattedFolderName },
+          { $set: { formName: newFormattedFormName } }
+        );
+
+        await Response.updateMany(
+          { userId, formName: currentFormattedFormName, folderName: formattedFolderName },
+          { $set: { formName: newFormattedFormName } }
+        );
+
+        await existingForm.save();
+        return res.status(200).json({ message: "Form name updated successfully" });
       } catch (error) {
+        console.error("Error updating form name:", error);
         return res.status(500).json({ error: "Server error" });
       }
     }
-    // Check if all required fields are present
-    if (!formName || !folderName || !elements) {
-      return res
-        .status(400)
-        .json({ error: "Missing required fields" });
+
+    // Check if elements are provided for updating content
+    if (!elements) {
+      return res.status(400).json({ error: "Missing required elements field" });
     }
 
-    // Find the existing form by formName and userId
-    const existingForm = await Form.findOne({ formName, userId });
+    // Find the existing form using the formatted formName
+    const existingForm = await Form.findOne({
+      formName: currentFormattedFormName,
+      userId,
+      folderName: formattedFolderName,
+    });
 
     if (!existingForm) {
       return res.status(404).json({ error: "Form not found" });
     }
 
     // Update the form fields
-    existingForm.folderName = folderName;
     existingForm.elements = elements;
 
     // Save the updated form
@@ -653,10 +724,11 @@ const updateFormContent = async (req, res) => {
   }
 };
 
+
 const addFormResponses = async (req, res) => {
-  const { id } = req.params;
-  const { folderName, formName, responses } = req.body;
-  console.log(responses);
+  const { id } = req.params; // Extract userId from the URL parameters
+  const { folderName, formName, responses } = req.body; // Extract folderName, formName, and responses from request body
+  console.log("Received responses:", folderName, formName, responses);
 
   // Validate userId
   const userId = mongoose.Types.ObjectId.isValid(id)
@@ -668,90 +740,94 @@ const addFormResponses = async (req, res) => {
   }
 
   try {
-    // Check if the form exists by userId, formName, and folderName
-    const form = await Form.findOne({ formName, userId, folderName });
+    // Append userId to folderName for uniqueness
+    const formattedFolderName = `${folderName}@${userId}`;
+
+    // Generate the formatted formName
+    const formattedFormName = `${formName}@${formattedFolderName}`;
+
+    // Check if the form exists
+    const form = await Form.findOne({
+      formName: formattedFormName,
+      userId,
+      folderName: formattedFolderName,
+    });
 
     if (!form) {
       return res.status(404).json({ message: "Form not found" });
     }
 
-    // Find the latest response by userId, formName, and folderName, ordered by the timestamp or creation date
+    // Find the latest response by userId, formattedFolderName, and formattedFormName
     const latestResponse = await Response.findOne({
       userId,
-      folderName,
-      formName,
-    }).sort({ timestamp: -1 }); // Sort by timestamp in descending order to get the latest response
+      folderName: formattedFolderName,
+      formName: formattedFormName,
+    }).sort({ timestamp: -1 });
 
-    // Get the last user value (if exists) and increment it by 1
-    const lastUserValue = latestResponse ? latestResponse.user : 0; // Default to 0 if no previous responses
-
-    // Create a new user value for all responses based on the last user value
+    // Determine the last user value and increment it
+    const lastUserValue = latestResponse ? latestResponse.user : 0;
     const newUser = lastUserValue + 1;
 
-    // Iterate over all responses and save them
+    // Save all responses
     const savedResponses = [];
     for (const resp of responses) {
-      if (!resp.order || !resp.buttonType) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "order and buttonType are required for each response",
-          });
-      }
-
       const { buttonType, response, order, timestamp } = resp;
 
-      // Check if the element exists in the form by order and buttonType
+      // Validate required fields in each response
+      if (!order || !buttonType) {
+        return res.status(400).json({
+          message: "order and buttonType are required for each response",
+        });
+      }
+
+      // Check if the element exists in the form
       const element = form.elements.find(
         (el) => el.order === order && el.buttonType === buttonType
       );
-      console.log("element", element);
 
       if (element) {
-        // Save the response to the Response model with the same user value for all responses
+        // Prepare the new response
         const newResponse = new Response({
-          userId, // Save the userId from the request
-          folderName,
-          formName,
-          user: newUser, // Set user as the last user value + 1 for all responses
+          userId,
+          folderName: formattedFolderName,
+          formName: formattedFormName,
+          user: newUser,
           buttonType,
-          content: element.content, // Assuming content comes from the element in the form
+          content: element.content,
           response,
           order,
-          timestamp: new Date(timestamp), // Make sure to set timestamp
+          timestamp: new Date(timestamp), // Ensure timestamp is properly formatted
         });
 
-        // Save the new response
+        // Save and collect the response
         await newResponse.save();
-
-        // Add the saved response to the array
         savedResponses.push(newResponse);
+      } else {
+        console.log(`Element not found for order ${order} and buttonType ${buttonType}`);
       }
     }
 
-    // Return the saved responses array
-    res
-      .status(200)
-      .json({
-        message: "Responses added successfully",
-        responses: savedResponses,
-      });
+    // Return the saved responses
+    res.status(200).json({
+      message: "Responses added successfully",
+      responses: savedResponses,
+    });
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "Error adding responses",
-        error: error.message,
-      });
+    console.error("Error adding responses:", error);
+    res.status(500).json({
+      message: "Error adding responses",
+      error: error.message,
+    });
   }
 };
 
+
+
 const getFormResponses = async (req, res) => {
-  const { id } = req.params; // The userId is sent as part of the URL params
-  const { folderName, formName } = req.query; // folderName and formName are part of the query parameters
+  const { id } = req.params; // Extract userId from the URL parameters
+  const { folderName, formName } = req.query; // Extract folderName and formName from query parameters
   console.log("reached", folderName, formName);
+
   // Validate userId
   const userId = mongoose.Types.ObjectId.isValid(id)
     ? new mongoose.Types.ObjectId(id)
@@ -762,33 +838,44 @@ const getFormResponses = async (req, res) => {
   }
 
   try {
-    // Fetch all responses for the given userId, folderName, and formName
+    // Append userId to folderName to ensure uniqueness
+    const formattedFolderName = `${folderName}@${userId}`;
+
+    // Generate the formatted formName
+    const formattedFormName = `${formName}@${formattedFolderName}`;
+
+    // Fetch all responses for the given userId, folderName, and formatted formName
     const responses = await Response.find({
       userId,
-      folderName,
-      formName,
+      folderName: formattedFolderName,
+      formName: formattedFormName,
     });
-    console.log(responses);
+
+    console.log("Responses:", responses);
+
     if (!responses || responses.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No responses found for the given form" });
+      return res.status(404).json({
+        message: "No responses found for the given form",
+      });
     }
 
     // Return the found responses
-    res
-      .status(200)
-      .json({ message: "Responses fetched successfully", responses });
+    res.status(200).json({
+      message: "Responses fetched successfully",
+      folderName, // Return cleaned folderName
+      formName, // Return cleaned formName
+      responses,
+    });
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "Error fetching responses",
-        error: error.message,
-      });
+    console.error("Error fetching responses:", error);
+    res.status(500).json({
+      message: "Error fetching responses",
+      error: error.message,
+    });
   }
 };
+
+
 
 const getFormContent = async (req, res) => {
   try {
@@ -804,36 +891,40 @@ const getFormContent = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res
-        .status(400)
-        .json({ message: "Invalid userId format" });
+      return res.status(400).json({ message: "Invalid userId format" });
     }
+
     // Extract formName and folderName from query parameters
     const { formName, folderName } = req.query;
     console.log("formName:", formName, "folderName:", folderName);
 
     // Check if all required fields are provided
     if (!formName || !folderName) {
-      return res
-        .status(400)
-        .json({ error: "Missing formName or folderName" });
+      return res.status(400).json({ error: "Missing formName or folderName" });
     }
 
-    // Query the database for the form
+    // Generate the formatted folderName and formName for lookup
+    const formattedFolderName = `${folderName}@${userId}`;
+    const formattedFormName = `${formName}@${folderName}@${userId}`;
+
+    // Query the database for the form using the formatted formName
     const form = await Form.findOne({
       userId,
-      formName,
-      folderName,
+      formName: formattedFormName,
+      folderName: formattedFolderName,
     });
 
     if (!form) {
       return res.status(404).json({ error: "Form not found" });
     }
 
-    // Return the form data including responses
+    // Remove formatting from folderName before sending response
+    const cleanedFolderName = form.folderName.split("@")[0];
+
+    // Return the form data, including responses
     res.status(200).json({
-      formName: form.formName,
-      folderName: form.folderName,
+      formName: form.formName.split("@")[0], // Return only the original formName
+      folderName: cleanedFolderName, // Return cleaned folderName
       elements: form.elements,
       responses: form.responses,
     });
@@ -843,6 +934,8 @@ const getFormContent = async (req, res) => {
   }
 };
 
+
+
 const updateAnalytics = async (req, res) => {
   const { id } = req.params; // Extract user ID from the request parameters
   const { folderName, formName, analytics } = req.body; // Extract folderName, formName, and analytics from the request body
@@ -851,54 +944,57 @@ const updateAnalytics = async (req, res) => {
   const userId = mongoose.Types.ObjectId.isValid(id)
     ? new mongoose.Types.ObjectId(id)
     : null;
+
   if (!userId) {
     return res.status(400).json({ message: "Invalid userId format" });
   }
 
   try {
-    // Define the update operation based on the analytics value
-    let updateOperation = {};
-
-    if (analytics === "view") {
-      updateOperation = { $inc: { view: 1 } };
-    } else if (analytics === "start") {
-      updateOperation = { $inc: { start: 1 } };
-    } else if (analytics === "completed") {
-      updateOperation = { $inc: { completed: 1 } };
-    } else {
-      return res
-        .status(400)
-        .json({ message: "Invalid analytics type" });
+    // Validate the analytics type
+    if (!["view", "start", "completed"].includes(analytics)) {
+      return res.status(400).json({ message: "Invalid analytics type" });
     }
+
+    // Format the folderName to include the userId
+    const formattedFolderName = `${folderName}@${userId}`;
+
+    // Generate the formatted formName
+    const formattedFormName = `${formName}@${formattedFolderName}`;
+
+    // Define the update operation based on the analytics value
+    const updateOperation = { $inc: { [analytics]: 1 } };
 
     // Find the document to update or create a new one if it doesn't exist
     const result = await Analytics.findOneAndUpdate(
-      { userId, folderName, formName },
+      { userId, folderName: formattedFolderName, formName: formattedFormName },
       updateOperation,
       { new: true, upsert: true } // Create a new document if one doesn't exist
     );
+
     console.log(result);
+
     // Send the updated document as the response
-    res
-      .status(200)
-      .json({
-        message: "Analytics updated successfully",
-        data: result,
-      });
+    res.status(200).json({
+      message: "Analytics updated successfully",
+      data: {
+        folderName: formattedFolderName.split("@")[0], // Return cleaned folderName
+        formName: formattedFormName.split("@")[0], // Return cleaned formName
+        analytics: result,
+      },
+    });
   } catch (error) {
     console.error("Error updating analytics:", error);
-    res
-      .status(500)
-      .json({
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
+
 const getAnalytics = async (req, res) => {
-  const { id } = req.params; // User ID from URL params
-  const { folderName, formName } = req.query; // Folder name and form name from query params
+  const { id } = req.params; // Extract user ID from URL params
+  const { folderName, formName } = req.query; // Extract folder name and form name from query params
 
   // Validate userId
   const userId = mongoose.Types.ObjectId.isValid(id)
@@ -910,31 +1006,37 @@ const getAnalytics = async (req, res) => {
   }
 
   try {
+    // Append userId to folderName to ensure uniqueness
+    const formattedFolderName = `${folderName}@${userId}`;
+
+    // Generate the formatted formName for the query
+    const formattedFormName = `${formName}@${formattedFolderName}`;
+
     // Query the analytics data
     const analyticsData = await Analytics.findOne({
-      userId: userId,
-      folderName: folderName,
-      formName: formName,
+      userId,
+      folderName: formattedFolderName,
+      formName: formattedFormName,
     });
 
-    console.log("analyticsData", analyticsData);
+    console.log("analyticsData:", analyticsData);
 
     if (!analyticsData) {
-      return res
-        .status(404)
-        .json({ message: "Analytics data not found" });
+      return res.status(404).json({ message: "Analytics data not found" });
     }
 
     // Send analytics data
     res.status(200).json({
-      view: analyticsData.view,
-      start: analyticsData.start,
-      completed: analyticsData.completed,
+      folderName, // Return the cleaned folderName
+      formName, // Return the cleaned formName
+      view: analyticsData.view || 0,
+      start: analyticsData.start || 0,
+      completed: analyticsData.completed || 0,
     });
   } catch (error) {
     // Handle errors
     console.error("Error fetching analytics:", error);
-    res.status(500).json({ message: "Server error", error });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

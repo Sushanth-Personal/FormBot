@@ -1,38 +1,51 @@
 import { useState, useEffect } from "react";
-import {api} from "../api/api";
+import { fetchUserData, api } from "../api/api";
 import { useUserContext } from "../Contexts/UserContext";
-const useFetchAccessibleWorkspaces = () => {
 
-  
+const useFetchAccessibleWorkspaces = (setSelectedWorkspace) => {
   const [error, setError] = useState(null);
-  const {workspaces,userData, setWorkspaces} = useUserContext();
+  const { workspaces, userData, setWorkspaces } = useUserContext();
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
+        // Get userId from sessionStorage or localStorage
+        const userId = localStorage.getItem("userId");
 
-        const response = await api.get(`/access/workspaces/${userData._id}`);
-        // Assuming the response contains an array of workspaces with user info (username, userId, accessToken)
+        console.log("userId", userId);
+
+        // Fetch workspaces for the given userId
+        const response = await api.get(
+          `/access/workspaces/${userId}`
+        );
         console.log(response.data);
-        if(userData._id != undefined){
-          setWorkspaces([{
-            userId: userData._id,
-            username: userData.username,
-            permission: "edit"
-          },
-        ...response.data
-        ]);
-        }
-        
-      } catch (err) {
-        setError("Failed to fetch accessible workspaces",err);
-      } 
-    };
 
    
-      fetchWorkspaces();
-    
-  }, [userData]);
+          setWorkspaces([...response.data.workspaces]);
+          if(JSON.parse(sessionStorage.getItem("selectedWorkspace"))){
+            setSelectedWorkspace(JSON.parse(sessionStorage.getItem("selectedWorkspace")));
+            return;
+          }
+         
+          const userResponse = await fetchUserData(userId);
+          if (userResponse) {
+            console.log("goinginside");
+            setSelectedWorkspace(userResponse);
+            sessionStorage.setItem(
+              "selectedWorkspace",
+              JSON.stringify(userResponse)
+            );
+          }
+        
+      } catch (err) {
+        // Handle errors
+        setError("Failed to fetch accessible workspaces");
+        console.error(err);
+      }
+    };
+
+    fetchWorkspaces();
+  }, [userData, setWorkspaces, setSelectedWorkspace]);
 
   return { workspaces, error };
 };

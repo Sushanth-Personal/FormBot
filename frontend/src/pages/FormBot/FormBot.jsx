@@ -63,7 +63,7 @@ const FormBot = () => {
     }
   }, [queryParams]);
 
-  useFetchFlowData();
+  useFetchFlowData(queryParams.userId);
 
   useEffect(() => {
     if (flowData.length > 0 && currentIndex < flowData.length) {
@@ -346,7 +346,7 @@ const FormBot = () => {
     });
 
     console.log(responsesWithFlowData);
-
+    console.log(queryParams.userId);
     api
       .post(`/form/response/${queryParams.userId}`, {
         folderName: queryParams.folderName,

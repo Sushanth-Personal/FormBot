@@ -442,3 +442,23 @@
 }
 
 
+.saveModal{
+  width: 300px;
+  height: 250px;
+  border-radius: 16px;
+  background-color:var(--dark-background-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color:var(--text-color);
+  border:1px solid var(--border-color);
+  position: absolute;
+  top:50%;
+  left:50%;
+  transform: translate(-50%,-50%);
+  z-index: 100;
+  font-family: 'Open Sans', sans-serif; 
+  font-size: 1.8rem;
+}
