@@ -188,6 +188,7 @@
   right: 0px;
   bottom: -7px;
   border: none;
+  z-index: 2000;
 }
 .datePickerContainer .confirmButton {
   background-color: #007bff;
