@@ -1,18 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./formbot.module.css";
-import useFetchFlowData from "../../customHooks/useFetchFlowData";
-import { useUserContext } from "../../Contexts/UserContext";
-import useAuth from "../../customHooks/useAuth";
+
 import { useRef } from "react";
 import { api } from "../../api/api";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css'; // Import the CSS
 
 const FormBot = () => {
-  useAuth();
-  const { flowData, setSelectedFolder, setSelectedForm } =
-    useUserContext();
   const location = useLocation();
   const [queryParams, setQueryParams] = useState({
     userId: "",
@@ -34,9 +27,9 @@ const FormBot = () => {
     "Type your message..."
   );
   const [isSubmitButton, setIsSubmitButton] = useState(false);
-  const [tempInput, setTempInput] = useState(""); // Temporary input for special types
   const [inputType, setInputType] = useState("text"); // Determines the input type
   const [responses, setResponses] = useState([]); // Store all user responses
+  const [flowData, setFlowData] = useState([]);
   const chatDisplayRef = useRef(null);
 
   useEffect(() => {
@@ -53,8 +46,6 @@ const FormBot = () => {
     const folderName = params.get("folderName") || "";
 
     setQueryParams({ userId, formName, folderName });
-    setSelectedFolder(folderName);
-    setSelectedForm(formName);
   }, [location.search]);
 
   useEffect(() => {
@@ -63,7 +54,40 @@ const FormBot = () => {
     }
   }, [queryParams]);
 
-  useFetchFlowData(queryParams.userId);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!queryParams.userId) {
+        return;
+      }
+      try {
+        const response = await api.get(
+          `/form/${queryParams.userId}`,
+          {
+            params: {
+              formName: queryParams.formName,
+              folderName: queryParams.folderName,
+            },
+          }
+        ); // Updated API endpoint
+        if (response.status === 200) {
+          const data = response.data;
+          console.log(response);
+
+          sessionStorage.setItem(
+            "flowData",
+            JSON.stringify(data.elements)
+          );
+          setFlowData(data.elements);
+        } else {
+          console.error("Failed to fetch flow data");
+        }
+      } catch (error) {
+        console.error("Error fetching flow data:", error);
+      }
+    };
+
+    fetchData();
+  }, [queryParams]);
 
   useEffect(() => {
     if (flowData.length > 0 && currentIndex < flowData.length) {
@@ -303,7 +327,7 @@ const FormBot = () => {
         order: currentIndex, // Current index in flowData
         response: tempRating, // Response content
       };
-  
+
       setMessages((prev) => [
         ...prev,
         {
@@ -315,7 +339,7 @@ const FormBot = () => {
       setTempRating(0); // Reset temporary rating
       setShowRatingInput(false); // Hide rating input
       setCurrentIndex((prev) => prev + 1); // Move to the next step
-  
+
       // Call the analytics update for the first response (if not already done)
       if (responses.length === 0) {
         updateAnalytics("start"); // Update analytics for the first user response
@@ -324,7 +348,7 @@ const FormBot = () => {
       alert("Please select a rating before confirming.");
     }
   };
-  
+
   const submitFormResponses = () => {
     console.log("Responses:", responses);
 
@@ -345,8 +369,6 @@ const FormBot = () => {
       };
     });
 
-    console.log(responsesWithFlowData);
-    console.log(queryParams.userId);
     api
       .post(`/form/response/${queryParams.userId}`, {
         folderName: queryParams.folderName,
@@ -356,24 +378,10 @@ const FormBot = () => {
       .then((response) => {
         console.log("Responses submitted successfully", response);
         updateAnalytics("completed");
-        submitToast();
       })
       .catch((error) => {
         console.error("Error submitting responses", error);
       });
-  };
-
-  const submitToast = () => {
-    setTimeout(() => {
-      // Trigger the toast notification
-      toast.success('Form Submitted Successfully!', {
-        position: toast.POSITION.TOP_CENTER, // Position of the toast
-        autoClose: 5000, // Time in milliseconds before the toast auto closes
-        hideProgressBar: false, // Show progress bar
-        closeOnClick: true, // Close on click
-        pauseOnHover: true, // Pause when hovered
-      });
-    }, 1000); // Simulating a delay before submission
   };
 
   return (
@@ -487,7 +495,6 @@ const FormBot = () => {
           </button>
         </div>
       )}
-       <ToastContainer />
     </div>
   );
 };

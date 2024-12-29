@@ -104,8 +104,8 @@ const ResponseDisplay = () => {
         <h1 className = {styles.noResponse}>No Responses Yet</h1>
       </div>}
       {responses.length > 0 && (
-  <div>
-    
+        
+    <>
   <div className={styles.viewContainer}>
     <div className={styles.views}>
       <h1>Views</h1>
@@ -179,7 +179,7 @@ const ResponseDisplay = () => {
     <p>{Math.round((analytics.completed /( analytics.start)) * 100)}%</p>
   </div>
   </div>
-</div>
+</>
 )}
       
 
