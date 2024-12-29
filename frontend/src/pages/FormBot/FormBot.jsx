@@ -405,15 +405,7 @@ const FormBot = () => {
         ))}
       </div>
 
-      {/* Show date picker if requested */}
-      {showDatePicker && (
-        <div className={styles.datePickerContainer}>
-          <input
-            type="date"
-            onChange={(e) => handleDateSelection(e.target.value)}
-          />
-        </div>
-      )}
+      
 
       {/* Show rating input if requested */}
       {showRatingInput && (
@@ -448,7 +440,8 @@ const FormBot = () => {
       {/* Input section, shown only when 'Rating' type is not active */}
       {!isSubmitButton && !showRatingInput && (
         <div className={`${styles.textInputSection} `}>
-          <input
+          {!showDatePicker && (
+            <input
             className={`${isInputDisabled ? "disabledInput" : ""}`}
             disabled={isInputDisabled}
             type="text"
@@ -456,6 +449,8 @@ const FormBot = () => {
             onChange={(e) => setUserInput(e.target.value)}
             placeholder={inputPlaceholder}
           />
+          )}
+          
           {showDatePicker ? (
             <button
               disabled={showDatePicker && !tempDate}
@@ -483,6 +478,14 @@ const FormBot = () => {
               />
             </button>
           )}
+          {showDatePicker && (
+        <div className={styles.datePickerContainer}>
+          <input
+            type="date"
+            onChange={(e) => handleDateSelection(e.target.value)}
+          />
+        </div>
+      )}
         </div>
       )}
       {isSubmitButton && (
