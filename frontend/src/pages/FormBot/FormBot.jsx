@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./formbot.module.css";
-
+import ClipLoader from "react-spinners/ClipLoader";
 import { useRef } from "react";
 import { api } from "../../api/api";
-
+import { useNavigate } from "react-router-dom";
 const FormBot = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const [queryParams, setQueryParams] = useState({
     userId: "",
@@ -31,7 +32,7 @@ const FormBot = () => {
   const [responses, setResponses] = useState([]); // Store all user responses
   const [flowData, setFlowData] = useState([]);
   const chatDisplayRef = useRef(null);
-
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     if (chatDisplayRef.current) {
       chatDisplayRef.current.scrollTop =
@@ -351,7 +352,8 @@ const FormBot = () => {
 
   const submitFormResponses = () => {
     console.log("Responses:", responses);
-
+    setIsLoading(true);
+    
     const timestamp = new Date();
 
     // Create an array of responses along with their flowData
@@ -377,7 +379,9 @@ const FormBot = () => {
       })
       .then((response) => {
         console.log("Responses submitted successfully", response);
+        setIsLoading(false);
         updateAnalytics("completed");
+        navigate("/thankyou");
       })
       .catch((error) => {
         console.error("Error submitting responses", error);
@@ -404,8 +408,6 @@ const FormBot = () => {
           </div>
         ))}
       </div>
-
-      
 
       {/* Show rating input if requested */}
       {showRatingInput && (
@@ -442,15 +444,15 @@ const FormBot = () => {
         <div className={`${styles.textInputSection} `}>
           {!showDatePicker && (
             <input
-            className={`${isInputDisabled ? "disabledInput" : ""}`}
-            disabled={isInputDisabled}
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder={inputPlaceholder}
-          />
+              className={`${isInputDisabled ? "disabledInput" : ""}`}
+              disabled={isInputDisabled}
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder={inputPlaceholder}
+            />
           )}
-          
+
           {showDatePicker ? (
             <button
               disabled={showDatePicker && !tempDate}
@@ -479,13 +481,13 @@ const FormBot = () => {
             </button>
           )}
           {showDatePicker && (
-        <div className={styles.datePickerContainer}>
-          <input
-            type="date"
-            onChange={(e) => handleDateSelection(e.target.value)}
-          />
-        </div>
-      )}
+            <div className={styles.datePickerContainer}>
+              <input
+                type="date"
+                onChange={(e) => handleDateSelection(e.target.value)}
+              />
+            </div>
+          )}
         </div>
       )}
       {isSubmitButton && (
@@ -494,10 +496,15 @@ const FormBot = () => {
             onClick={submitFormResponses}
             className={`${styles.submitButton} ${styles.final}`}
           >
-            Submit
+            {isLoading ? (
+              <ClipLoader color="white" size={25} />
+            ) : (
+              "Submit"
+            )}
           </button>
         </div>
       )}
+    
     </div>
   );
 };
