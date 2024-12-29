@@ -19,7 +19,7 @@ const FormBot = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempDate, setTempDate] = useState(null);
+  const [tempDate, setTempDate] = useState(new Date());
   const [showRatingInput, setShowRatingInput] = useState(false);
   const [tempRating, setTempRating] = useState(0);
   const [hasSentTextInput, setHasSentTextInput] = useState(false);
@@ -231,8 +231,9 @@ const FormBot = () => {
 
       setMessages((prev) => [
         ...prev,
-        { type: "user", content: tempDate },
+        { type: "user", content: tempDate.toLocaleDateString() }, // Formats the date as a string
       ]);
+      
       setResponses((prev) => [...prev, response]);
       setTempDate(null);
       setShowDatePicker(false);
@@ -315,6 +316,7 @@ const FormBot = () => {
   };
 
   const handleDateSelection = (date) => {
+    console.log(date);
     setTempDate(date);
   };
 
@@ -458,9 +460,8 @@ const FormBot = () => {
 {showDatePicker && (
         <DatePicker
           selected={tempDate}
-          onChange={handleDateSelection}
-          showTimeSelect
-          dateFormat="Pp"
+          onChange={(date) => handleDateSelection(date)}
+          dateFormat="yyyy/MM/dd"
           className={styles.datePicker}
           placeholderText="Select date and time"
         />
