@@ -97,122 +97,121 @@ const FormBot = () => {
       processFlowData(currentIndex);
     }
   }, [flowData, currentIndex]);
-
   const processFlowData = (index) => {
     const currentFlow = flowData[index];
-    if (
-      !currentFlow ||
-      messages.some((msg) => msg.content === currentFlow.content)
-    )
-      return; // Prevent duplicate messages
+    
+    if (!currentFlow) return; // Exit if no flow data
+
+    // Check for duplicate messages based on unique index instead of just content
+    if (messages.some((msg) => msg.index === index)) return;
+
     setIsInputDisabled(true);
+
+    const newMessage = {
+        type: "bot",
+        content: currentFlow.content,
+        index, // Attach the index for uniqueness
+    };
+
     switch (currentFlow.buttonType) {
-      case "TextBubble":
-        setInputPlaceholder("Type your message...");
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", content: currentFlow.content },
-        ]);
-        setTimeout(() => setCurrentIndex((prev) => prev + 1), 1000);
-        break;
-      case "Image":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            content: `${currentFlow.content}`,
-            isImage: true,
-          },
-        ]);
-        setTimeout(() => setCurrentIndex((prev) => prev + 1), 1000);
-        break;
-      case "Gif":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            content: `${currentFlow.content}`,
-            isGif: true,
-          },
-        ]);
-        setTimeout(() => setCurrentIndex((prev) => prev + 1), 1000);
-        break;
-      case "TextInput":
-        if (!hasSentTextInput) {
-          setMessages((prev) => [
-            ...prev,
-            { type: "bot", content: " " },
-          ]);
-          setHasSentTextInput(true);
-          setIsInputDisabled(false);
-          setInputPlaceholder("Please enter your response...");
-        }
-        break;
-      case "Date":
-        if (!hasSentDatePicker) {
-          setMessages((prev) => [
-            ...prev,
-            { type: "bot", content: "Please select a date." },
-          ]);
-          setShowDatePicker(true);
-          setHasSentDatePicker(true);
-          setInputPlaceholder("Select a Date...");
-        }
-        break;
-      case "Rating":
-        if (!hasSentRatingInput) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: "bot",
-              content: "Please provide a rating (1 to 5 stars).",
-            },
-          ]);
-          setShowRatingInput(true);
-          setHasSentRatingInput(true);
-          setIsInputDisabled(false);
-        }
-        break;
-      case "Number":
-        setInputType("number");
-        setInputPlaceholder("Please enter a number...");
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", content: "Please enter a number." },
-        ]);
-        setIsInputDisabled(false);
-        break;
-      case "Email":
-        setInputType("email");
-        setInputPlaceholder("Please enter your email...");
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", content: "Please enter your email." },
-        ]);
-        setIsInputDisabled(false);
-        break;
-      case "Phone":
-        setInputType("phone");
-        setInputPlaceholder("Please enter your phone number...");
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", content: "Please enter your phone number." },
-        ]);
-        setIsInputDisabled(false);
-        break;
-      case "Button":
-        setMessages((prev) => [
-          ...prev,
-          { type: "bot", content: "Please press the Submit Button" }, // Change to "Submit"
-        ]);
-        setHasSentTextInput(false); // Remove text input for this type
-        setInputPlaceholder(""); // Clear the placeholder
-        setIsSubmitButton(true);
-        break;
-      default:
-        break;
+        case "TextBubble":
+            setInputPlaceholder("Type your message...");
+            setMessages((prev) => [...prev, newMessage]);
+            setTimeout(() => setCurrentIndex((prev) => prev + 1), 1000);
+            break;
+        case "Image":
+            setMessages((prev) => [
+                ...prev,
+                { ...newMessage, isImage: true },
+            ]);
+            setTimeout(() => setCurrentIndex((prev) => prev + 1), 1000);
+            break;
+        case "Gif":
+            setMessages((prev) => [
+                ...prev,
+                { ...newMessage, isGif: true },
+            ]);
+            setTimeout(() => setCurrentIndex((prev) => prev + 1), 1000);
+            break;
+        case "TextInput":
+            if (!hasSentTextInput) {
+                setMessages((prev) => [...prev, { type: "bot", content: " " }]);
+                setHasSentTextInput(true);
+                setIsInputDisabled(false);
+                setInputPlaceholder("Please enter your response...");
+            }
+            break; // Do not increment index automatically
+        case "Date":
+            if (!hasSentDatePicker) {
+                setMessages((prev) => [
+                    ...prev,
+                    { type: "bot", content: "Please select a date." },
+                ]);
+                setShowDatePicker(true);
+                setHasSentDatePicker(true);
+            }
+            break; // Do not increment index automatically
+        case "Rating":
+            if (
+                !hasSentRatingInput ||
+                currentIndex !== flowData.findIndex(
+                    (item) => item.buttonType === "Rating"
+                )
+            ) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        type: "bot",
+                        content: "Please provide a rating (1 to 5 stars).",
+                    },
+                ]);
+                setShowRatingInput(true);
+                setHasSentRatingInput(true);
+                setIsInputDisabled(false);
+            }
+            break; // Do not increment index automatically
+        case "Number":
+            setInputType("number");
+            setInputPlaceholder("Please enter a number...");
+            setMessages((prev) => [
+                ...prev,
+                { ...newMessage, content: "Please enter a number." },
+            ]);
+            setIsInputDisabled(false);
+            break; // Do not increment index automatically
+        case "Email":
+            setInputType("email");
+            setInputPlaceholder("Please enter your email...");
+            setMessages((prev) => [
+                ...prev,
+                { ...newMessage, content: "Please enter your email." },
+            ]);
+            setIsInputDisabled(false);
+            break; // Do not increment index automatically
+        case "Phone":
+            setInputType("phone");
+            setInputPlaceholder("Please enter your phone number...");
+            setMessages((prev) => [
+                ...prev,
+                { ...newMessage, content: "Please enter your phone number." },
+            ]);
+            setIsInputDisabled(false);
+            break; // Do not increment index automatically
+        case "Button":
+            setMessages((prev) => [
+                ...prev,
+                { ...newMessage, content: "Please press the Submit Button" },
+            ]);
+            setHasSentTextInput(false);
+            setInputPlaceholder("");
+            setIsSubmitButton(true);
+            break;
+        default:
+            break;
     }
-  };
+};
+
+
 
   const handleUserInput = () => {
     console.log("tempDate", tempDate);
