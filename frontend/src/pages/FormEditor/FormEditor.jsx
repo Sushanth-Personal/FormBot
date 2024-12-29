@@ -21,12 +21,12 @@ const FormEditor = () => {
     setSelectedFolder,
     flowData,
     setFlowData,
+    permission,
   } = useUserContext();
   const [isInputSelected, setIsInputSelected] = useState(false);
   const [currentForm, setCurrentForm] = useState(selectedForm);
   const [isFlowClicked, setIsFlowClicked] = useState(true);
   const [isResponseClicked, setIsResponseClicked] = useState(false);
-  const [error, setError] = useState("Required field");
   const [selectedTool, setSelectedTool] = useState(null);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const saveModalRef = useRef(null);
@@ -72,7 +72,7 @@ const FormEditor = () => {
     Gif: "GIF",
     Button: "Button",
   };
-
+  const [errors, setErrors] = useState({}); // To track errors for each button
   const getCount = (type) => {
     count[type] += 1;
     return count[type];
@@ -111,7 +111,10 @@ const FormEditor = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (saveModalRef.current && !saveModalRef.current.contains(event.target)) {
+      if (
+        saveModalRef.current &&
+        !saveModalRef.current.contains(event.target)
+      ) {
         closeModal();
       }
     };
@@ -123,7 +126,7 @@ const FormEditor = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  },[isSaveModalOpen]);
+  }, [isSaveModalOpen]);
 
   const closeModal = () => {
     setIsSaveModalOpen(false); // Update your modal state here
@@ -149,22 +152,21 @@ const FormEditor = () => {
 
     try {
       let userId;
-      if(sessionStorage.getItem("selectedWorkspace")){
-        userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
-      }else{
+      if (sessionStorage.getItem("selectedWorkspace")) {
+        userId = JSON.parse(
+          sessionStorage.getItem("selectedWorkspace")
+        )._id;
+      } else {
         userId = userData._id;
       }
-      if(!userId){
+      if (!userId) {
         return;
       }
-      const response = await api.put(
-        `/protected/form/${userId}`,
-        {
-          formName: selectedForm,
-          folderName: selectedFolder,
-          newFormName: currentForm,
-        }
-      );
+      const response = await api.put(`/protected/form/${userId}`, {
+        formName: selectedForm,
+        folderName: selectedFolder,
+        newFormName: currentForm,
+      });
 
       console.log(response);
       if (response.status === 200) {
@@ -181,6 +183,7 @@ const FormEditor = () => {
 
   // Handle toolbox button click to add flow button
   const handleToolBoxButtonClick = (toolType) => {
+    if (permission === "view") return;
     setSelectedTool(toolType);
 
     const newFlowData = {
@@ -201,12 +204,13 @@ const FormEditor = () => {
 
   // Handle delete button for a flow button
   const handleDeleteFlowButton = (id) => {
-    console.log("id", id);
+    if (permission === "view") return;
+
     // Step 1: Filter out the button being deleted
     const updatedFlowData = flowData.filter(
       (button) => button.id !== id
     );
-    console.log(updatedFlowData);
+
     // Step 2: Reassign the order to the remaining buttons (1, 2, 3, ...)
     const updatedFlowDataWithOrder = updatedFlowData.map(
       (button, index) => ({
@@ -222,8 +226,6 @@ const FormEditor = () => {
   // Handle input change for specific button type
   const handleInputChange = (e, buttonType, buttonId) => {
     const { value } = e.target;
-    console.log(value);
-    // Update the content of the flowData for the specific button
     setFlowData((prevFlowData) =>
       prevFlowData.map((button) =>
         button.id === buttonId
@@ -234,12 +236,36 @@ const FormEditor = () => {
           : button
       )
     );
+    setErrors((prevErrors) => {
+      const updatedErrors = { ...prevErrors };
+      delete updatedErrors[buttonId]; // Clear error for this input
+      return updatedErrors;
+    });
   };
 
   const handleSave = () => {
-    // Ensure StartButton with order: 1 exists
-    console.log(flowData);
-    // Prepare the payload
+    // Validate the flowData
+    console.log("flowData", flowData);
+    const newErrors = {};
+    flowData.forEach((button) => {
+      if (
+        ["TextBubble", "Image", "Video", "Gif"].includes(
+          button.buttonType
+        ) &&
+        !button.content.trim() // Check if the content is empty
+      ) {
+        newErrors[button.id] = "This field is required"; // Add error for the button
+      }
+    });
+
+    console.log("newErrors", newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors); // Update the state with the errors
+      return; // Stop further execution if there are errors
+    }
+
+    // Proceed with saving if no errors
+    setErrors({});
     const payload = flowData
       .filter((button) =>
         [
@@ -257,58 +283,47 @@ const FormEditor = () => {
           "StartButton",
         ].includes(button.buttonType)
       )
-      .map((button) => {
-        const content =
-          button.buttonType !== "StartButton"
-            ? button.content || "" // Ensure content is properly assigned
-            : ""; // StartButton may not have content, you can adjust as needed
-        console.log(flowData);
-        return {
-          buttonType: button.buttonType,
-          id: button.id,
-          order:
-            flowData.findIndex(
-              (flowButton) => flowButton.id === button.id
-            ) + 1, // Ensure proper order
-          content: content, // Add content to the payload
-        };
-      });
+      .map((button) => ({
+        buttonType: button.buttonType,
+        id: button.id,
+        order:
+          flowData.findIndex(
+            (flowButton) => flowButton.id === button.id
+          ) + 1,
+        content: button.content || "",
+      }));
 
     console.log("payload", payload, selectedFolder, selectedForm);
-
     const selectedWorkspace = JSON.parse(
       sessionStorage.getItem("selectedWorkspace")
     );
-    let userId;
-    if (!selectedWorkspace) {
-      userId = userData._id;
-    } else {
-      userId = selectedWorkspace._id;
-    }
-    // Send the data to the backend using axios
+    let userId = selectedWorkspace
+      ? selectedWorkspace._id
+      : userData._id;
+
     api
       .put(`/protected/form/${userId}`, {
         formName: selectedForm,
         folderName: selectedFolder,
-        elements: payload, // Send the updated flow data to backend
+        elements: payload,
       })
       .then((response) => {
         console.log("Data saved successfully", response.data);
         setIsSaveModalOpen(true);
-        // Optionally, show success message, navigate, etc.
       })
       .catch((error) => {
         console.error("Error saving data", error);
-        // Optionally, show error message
       });
   };
 
   const handleShare = () => {
     let userId;
-    if(sessionStorage.getItem("selectedWorkspace")){
-      userId = JSON.parse(sessionStorage.getItem("selectedWorkspace"))._id;
-    }else{
-      userId=userData._id;
+    if (sessionStorage.getItem("selectedWorkspace")) {
+      userId = JSON.parse(
+        sessionStorage.getItem("selectedWorkspace")
+      )._id;
+    } else {
+      userId = userData._id;
     }
     // Construct a URL with minimal query parameters
     const link = `${window.location.origin}/formbot?formName=${selectedForm}&folderName=${selectedFolder}&userId=${userId}`;
@@ -332,13 +347,19 @@ const FormEditor = () => {
               {selectedForm}
             </h1>
           ) : (
-            <input
-              type="text"
-              placeholder={selectedForm}
-              value={currentForm}
-              onChange={(e) => setCurrentForm(e.target.value)}
-              onBlur={handleInputBlur}
-            />
+            <>
+              {permission === "edit" ? (
+                <input
+                  type="text"
+                  placeholder={selectedForm}
+                  value={currentForm}
+                  onChange={(e) => setCurrentForm(e.target.value)}
+                  onBlur={handleInputBlur}
+                />
+              ) : (
+                <h1>{selectedForm}</h1>
+              )}
+            </>
           )}
         </div>
         <div className={styles.middleTray}>
@@ -370,12 +391,15 @@ const FormEditor = () => {
           <button onClick={handleShare} className={styles.share}>
             Share
           </button>
-          <button
-            onClick={handleSave}
-            className={`${styles.share} ${styles.save}`}
-          >
-            Save
-          </button>
+          {permission === "edit" && (
+            <button
+              onClick={handleSave}
+              className={`${styles.share} ${styles.save}`}
+            >
+              Save
+            </button>
+          )}
+
           <img
             role="button"
             onClick={handleCloseForm}
@@ -546,7 +570,8 @@ const FormEditor = () => {
                           button.buttonType === "StartButton"
                             ? styles.start
                             : ""
-                        }`}
+                        }
+                        `}
                         style={{ order: index + 1 }} // Ensure StartButton stays at the top
                       >
                         {button.buttonType !== "StartButton" && (
@@ -578,6 +603,8 @@ const FormEditor = () => {
                           "Video",
                           "Gif",
                         ].includes(button.buttonType) && (
+                          <>
+                          {console.log("button", button.id)}
                           <input
                             type="text"
                             placeholder={
@@ -585,7 +612,7 @@ const FormEditor = () => {
                                 ? "Enter text"
                                 : "Click to add link"
                             }
-                            className={styles.inputField}
+                            className={` ${errors[button.id] ? styles.errorInput : ""}`}
                             value={button.content || ""} // Bind the input value to the button's content
                             onChange={
                               (e) =>
@@ -596,6 +623,8 @@ const FormEditor = () => {
                                 ) // Pass button.id to handleInputChange
                             }
                           />
+                          <p className = {styles.errorText}>{errors[button.id]}</p>
+                          </>
                         )}
                         {[
                           "TextInput",
@@ -618,11 +647,9 @@ const FormEditor = () => {
 
         {!isFlowClicked && isResponseClicked && <ResponseDisplay />}
       </main>
-      {isSaveModalOpen &&(
-        <div className = {styles.saveModal}
-        ref={saveModalRef}
-        >
-        <h1>Saved Successfully</h1>
+      {isSaveModalOpen && (
+        <div className={styles.saveModal} ref={saveModalRef}>
+          <h1>Saved Successfully</h1>
         </div>
       )}
     </section>

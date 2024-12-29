@@ -407,6 +407,13 @@
   color:var(--text-color);
 }
 
+.flowButton input.errorInput{
+  border:1px solid #F55050;
+  color:#F55050;
+}
+
+
+
 .flowButton .inputContainer{
   position: relative;
   width: 100%;
@@ -461,4 +468,14 @@
   z-index: 100;
   font-family: 'Open Sans', sans-serif; 
   font-size: 1.8rem;
+}
+
+.errorInput {
+  border: 2px solid red;
+}
+
+.flowButton .errorText {
+  color: red;
+  font-size: 1.2rem;
+  margin-top: 4px;
 }

@@ -30,7 +30,7 @@ const addWorkSpaces = async (req, res) => {
   }
 
   const { email, permission } = req.body;
-
+  console.log(email, permission);
   if (!email || !permission) {
     return res.status(400).json({ error: "Email and permission are required." });
   }

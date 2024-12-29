@@ -18,8 +18,6 @@ import useFetchAccessibleWorkpaces from "../../customHooks/useFetchAccessibleWor
 const Dashboard = () => {
   useAuth();
 
- 
-
   const navigate = useNavigate();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false); // State for modal visibility
@@ -42,6 +40,8 @@ const Dashboard = () => {
     theme,
     userData,
     setUserData,
+    permission,
+    setPermission,
   } = useUserContext();
 
   const [forms, setForms] = useState([]); // State to manage forms
@@ -63,11 +63,13 @@ const Dashboard = () => {
     console.log(forms);
   }, [forms]);
 
-useEffect(() => {
-  console.log(selectedWorkspace);
-}, [selectedWorkspace]);
+  useEffect(() => {
+    console.log(selectedWorkspace);
+  }, [selectedWorkspace]);
 
-
+  useEffect(() => {
+    console.log("permission", permission);
+  }, [permission]);
 
   useEffect(() => {
     console.log(selectedWorkspace);
@@ -82,7 +84,10 @@ useEffect(() => {
       if (workspaceData) {
         console.log("workspaceData", workspaceData);
         setSelectedWorkspace(workspaceData);
-        sessionStorage.setItem("selectedWorkspace", JSON.stringify(workspaceData));
+        sessionStorage.setItem(
+          "selectedWorkspace",
+          JSON.stringify(workspaceData)
+        );
         // Reorder the workspaces array
         const reorderedWorkspaces = workspaces.filter(
           (id) => id !== workspaceId
@@ -96,7 +101,16 @@ useEffect(() => {
         setFolders(folderNamesArray);
         setForms([]);
         setSelectedFolder("");
-  
+
+        const workspacesAvailable = workspaces;
+        const matchingWorkspace = workspacesAvailable.find(
+          (workspace) => workspace.userId === workspaceId
+        );
+
+        if (matchingWorkspace) {
+          console.log("matchingWorkspace", matchingWorkspace);
+          setPermission(matchingWorkspace.permission);
+        }
       }
     } catch (error) {
       console.error("Error fetching workspace data:", error);
@@ -390,30 +404,38 @@ useEffect(() => {
                 <Switch />
                 <label htmlFor="basic-switch">Dark</label>
               </div>
-              <button
-                onClick={() => setIsShareModalOpen(true)}
-                className={styles.share}
-              >
-                Share
-              </button>
+              {permission === "edit" && (
+                <button
+                  onClick={() => setIsShareModalOpen(true)}
+                  className={styles.share}
+                >
+                  Share
+                </button>
+              )}
             </div>
           </nav>
           <div className={styles.workspace}>
             <div className={styles.content}>
               <div className={styles.folderNav}>
                 <ul>
-                  <li role="button" onClick={handleCreateFolderClick}>
-                    <img
-                      className={styles.createFolder}
-                      src={
-                        theme === "light"
-                          ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734924297/add-folder_w0os8e.png"
-                          : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734865182/SVG_3_fawuu1.png"
-                      }
-                      alt="create folder"
-                    />
-                    Create a folder
-                  </li>
+                  {permission === "edit" && (
+                    <li
+                      role="button"
+                      onClick={handleCreateFolderClick}
+                    >
+                      <img
+                        className={styles.createFolder}
+                        src={
+                          theme === "light"
+                            ? "https://res.cloudinary.com/dtu64orvo/image/upload/v1734924297/add-folder_w0os8e.png"
+                            : "https://res.cloudinary.com/dtu64orvo/image/upload/v1734865182/SVG_3_fawuu1.png"
+                        }
+                        alt="create folder"
+                      />
+                      Create a folder
+                    </li>
+                  )}
+
                   {folders.map((folder, index) => (
                     <li
                       onClick={() => handleFolderClick(folder)}
@@ -423,26 +445,33 @@ useEffect(() => {
                       key={index}
                     >
                       {folder}
-                      <img
+                      {permission === "edit" && (<img
                         role="button"
                         onClick={() => confirmDeleteFolder(folder)}
                         className={styles.deleteFolder}
                         src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734865860/delete_obpnmw.png"
                         alt="delete folder"
-                      />
+                      />)}
+                      
                     </li>
                   ))}
                 </ul>
               </div>
               <div className={styles.formArea}>
                 <ul>
-                  <li role="button" onClick={handleCreateFormClick}>
-                    <img
-                      src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893036/SVG_4_zwan4q.png"
-                      alt="add"
-                    />
-                    <h3>Create a typebot</h3>
-                  </li>
+                  {permission === "edit" && (
+                    <li
+                      className={styles.create}
+                      role="button"
+                      onClick={handleCreateFormClick}
+                    >
+                      <img
+                        src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893036/SVG_4_zwan4q.png"
+                        alt="add"
+                      />
+                      <h3>Create a typebot</h3>
+                    </li>
+                  )}
 
                   {selectedFolder &&
                     forms.map((form, index) => (
@@ -451,16 +480,18 @@ useEffect(() => {
                         key={index}
                       >
                         {form}
-                        <img
-                          role="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            confirmDeleteForm(form);
-                          }}
-                          className={styles.deleteButton}
-                          src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
-                          alt="delete"
-                        />
+                        {permission === "edit" && (
+                          <img
+                            role="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              confirmDeleteForm(form);
+                            }}
+                            className={styles.deleteButton}
+                            src="https://res.cloudinary.com/dtu64orvo/image/upload/v1734893849/delete_dvkcex.svg"
+                            alt="delete"
+                          />
+                        )}
                       </li>
                     ))}
                 </ul>

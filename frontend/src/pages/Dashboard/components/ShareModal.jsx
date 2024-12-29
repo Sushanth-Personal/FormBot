@@ -3,10 +3,16 @@ import styles from "./sharemodal.module.css"; // Ensure to style your modal as n
 import axios from "axios";
 import { useUserContext } from "../../../Contexts/UserContext";
 import {api} from "../../../api/api";
+import {useEffect} from "react";
 const ShareModal = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState("");
   const [action, setAction] = useState("view");
-  const { userData } = useUserContext();
+  const { userData, theme} = useUserContext();
+
+    useEffect(() => {
+      document.documentElement.setAttribute("data-theme", theme);
+    }, [theme]);
+
   const handleShare = async () => {
     try {
       if (!email) {
@@ -38,20 +44,18 @@ const ShareModal = ({ isOpen, onClose }) => {
         <button className={styles.closeButton} onClick={onClose}>
           &times;
         </button>
-        <h2>Share Workspace</h2>
+        <h2 className = {styles.emailHeading}>Invite by Email</h2>
         <div className={styles.formGroup}>
-          <label htmlFor="email">Email ID:</label>
           <input
             type="email"
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email ID"
+            placeholder="Enter email id"
             required
           />
         </div>
         <div className={styles.formGroup}>
-          <label htmlFor="action">Action:</label>
           <select
             id="action"
             value={action}
@@ -64,6 +68,8 @@ const ShareModal = ({ isOpen, onClose }) => {
         <button className={styles.shareButton} onClick={handleShare}>
           Send Invite
         </button>
+        <h2 className = {styles.copyLinkHeading}>Copy link</h2>
+        <button className = {styles.shareButton}>Copy link</button>
       </div>
     </div>
   );

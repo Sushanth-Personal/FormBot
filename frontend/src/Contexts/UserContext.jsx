@@ -16,6 +16,7 @@ export const UserProvider = ({ children }) => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [flowData, setFlowData] = useState({});
   const [workspaces, setWorkspaces] = useState([]);
+  const [permission, setPermission] = useState("edit");
   const value = useMemo(
     () => ({
       userId,
@@ -37,7 +38,9 @@ export const UserProvider = ({ children }) => {
       flowData,
       setFlowData,
       workspaces,
-      setWorkspaces
+      setWorkspaces,
+      permission,
+      setPermission
     }),
     [
       userId,
@@ -59,7 +62,9 @@ export const UserProvider = ({ children }) => {
       flowData,
       setFlowData,
       workspaces,
-      setWorkspaces
+      setWorkspaces,
+      permission,
+      setPermission
     ]
   );
 
