@@ -6,10 +6,13 @@ const UserContext = createContext();
 
 // Create a provider component
 export const UserProvider = ({ children }) => {
+
+  const storedtheme = localStorage.getItem("theme");
+
   const [userId, setUserId] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState({});
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(storedtheme || "dark");
   const [folders, setFolders] = useState([]);
   const [allForms, setAllForms] = useState({});
   const [selectedForm, setSelectedForm] = useState(null);

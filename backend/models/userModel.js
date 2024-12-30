@@ -21,6 +21,9 @@ const authSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+      theme:{
+        type: String,
+      },
       accessibleWorkspace:[{
           userId:{
             type: mongoose.Schema.Types.ObjectId,

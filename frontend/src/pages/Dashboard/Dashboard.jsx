@@ -36,10 +36,7 @@ const Dashboard = () => {
     selectedFolder,
     setSelectedFolder,
     workspaces,
-    setWorkspaces,
     theme,
-    userData,
-    setUserData,
     permission,
     setPermission,
   } = useUserContext();

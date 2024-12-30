@@ -149,6 +149,7 @@ export const fetchUserData = async (userId) => {
     console.log("currentId", currentId);
     const response = await api.get(`/protected/user/${currentId}`);
     console.log("fetchUserresponse", response);
+    localStorage.setItem("userData", JSON.stringify(response.data.user));
     localStorage.setItem("folderForms", JSON.stringify(response.data.folderForms));
     if(isOtherWorkspaceData){
       console.log("isOtherWorkspaceData",response.data.user);

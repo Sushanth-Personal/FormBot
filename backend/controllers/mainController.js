@@ -10,14 +10,17 @@ const jwt = require("jsonwebtoken");
 
 const jwtExpiresIn = "7200m";
 
-const generateAccessToken = (email,permission) => {
-  return jwt.sign({ email,permission}, process.env.WORKSPACE_ACCESS_TOKEN_SECRET, {
-    expiresIn: jwtExpiresIn,
-  });
+const generateAccessToken = (email, permission) => {
+  return jwt.sign(
+    { email, permission },
+    process.env.WORKSPACE_ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: jwtExpiresIn,
+    }
+  );
 };
 
 const addWorkSpaces = async (req, res) => {
-
   const { id } = req.params;
 
   // Validate and convert the ID
@@ -32,14 +35,18 @@ const addWorkSpaces = async (req, res) => {
   const { email, permission } = req.body;
   console.log(email, permission);
   if (!email || !permission) {
-    return res.status(400).json({ error: "Email and permission are required." });
+    return res
+      .status(400)
+      .json({ error: "Email and permission are required." });
   }
 
   try {
     // Check if the email exists
     const recipient = await User.findOne({ email });
     if (!recipient) {
-      return res.status(404).json({ error: "User with provided email not found." });
+      return res
+        .status(404)
+        .json({ error: "User with provided email not found." });
     }
 
     const user = await User.findById(userId);
@@ -50,10 +57,15 @@ const addWorkSpaces = async (req, res) => {
     // Generate a new JWT accessToken
     let workspaceAccessToken;
     try {
-      workspaceAccessToken = generateAccessToken(user.email, permission);
+      workspaceAccessToken = generateAccessToken(
+        user.email,
+        permission
+      );
     } catch (error) {
       console.error("Error generating access token:", error);
-      return res.status(500).json({ error: "Failed to generate access token." });
+      return res
+        .status(500)
+        .json({ error: "Failed to generate access token." });
     }
 
     // Ensure accessibleWorkspace exists
@@ -90,7 +102,6 @@ const addWorkSpaces = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
-
 
 const getWorkSpaces = async (req, res) => {
   const { id } = req.params;
@@ -165,7 +176,9 @@ const getWorkSpaces = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching workspaces:", error.message);
-    return res.status(500).json({ message: "Internal server error." });
+    return res
+      .status(500)
+      .json({ message: "Internal server error." });
   }
 };
 
@@ -184,44 +197,66 @@ const getUser = async (req, res) => {
   }
 
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized: Access token is missing" });
+    return res
+      .status(401)
+      .json({ message: "Unauthorized: Access token is missing" });
   }
 
   try {
     // Decode the token
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decodedToken = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET
+    );
     const userIdFromToken = decodedToken?.id;
 
     if (!mongoose.Types.ObjectId.isValid(userIdFromToken)) {
-      return res.status(403).json({ message: "Invalid or corrupted token." });
+      return res
+        .status(403)
+        .json({ message: "Invalid or corrupted token." });
     }
 
     // Check if the `userId` in the token matches the `userId` in params
-    if (!userIdFromParams.equals(new mongoose.Types.ObjectId(userIdFromToken))) {
-      const tokenUser = await User.findById(new mongoose.Types.ObjectId(userIdFromToken));
+    if (
+      !userIdFromParams.equals(
+        new mongoose.Types.ObjectId(userIdFromToken)
+      )
+    ) {
+      const tokenUser = await User.findById(
+        new mongoose.Types.ObjectId(userIdFromToken)
+      );
       if (!tokenUser) {
         return res.status(404).json({ error: "User not found." });
       }
 
       // Check if the `userIdFromParams` exists in the `accessibleWorkspaces` array of the user from the token
-      const hasAccess = tokenUser.accessibleWorkspace.some((workspace) =>
-        workspace.userId.equals(userIdFromParams)
+      const hasAccess = tokenUser.accessibleWorkspace.some(
+        (workspace) => workspace.userId.equals(userIdFromParams)
       );
 
       if (!hasAccess) {
-        return res.status(403).json({ error: "Access denied: No permission to access this user." });
+        return res
+          .status(403)
+          .json({
+            error:
+              "Access denied: No permission to access this user.",
+          });
       }
     }
 
-    // Fetch the user by ID (either from params or confirmed via accessibleWorkspaces)
-    const user = await User.findById(userIdFromParams);
+    // Fetch the user by ID and exclude the password field explicitly
+    const user = await User.findById(userIdFromParams).select(
+      "-password"
+    );
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
     // Fetch all folders associated with the userId
-    const folders = await Folder.find({ userId: userIdFromParams }).select("name -_id");
+    const folders = await Folder.find({
+      userId: userIdFromParams,
+    }).select("name -_id");
 
     // Initialize an object to hold folder-wise forms
     const folderForms = {};
@@ -234,37 +269,47 @@ const getUser = async (req, res) => {
       }).select("formName -_id");
 
       // Process the `formName` to extract the original name before returning
-      folderForms[folder.name] = forms.map((form) => form.formName.split("@")[0]);
+      folderForms[folder.name] = forms.map(
+        (form) => form.formName.split("@")[0]
+      );
     }
 
     // Respond with the user data and structured folder-to-forms mapping
     // Strip @userId from folder names and form names in the response
-    const responseFolderForms = Object.keys(folderForms).reduce((acc, folder) => {
-      // Remove @userId from the folder name
-      const cleanFolderName = folder.split("@")[0];
-      // Map the forms for this folder, removing @userId from each form name
-      acc[cleanFolderName] = folderForms[folder].map(form => form.split("@")[0]);
-      return acc;
-    }, {});
+    const responseFolderForms = Object.keys(folderForms).reduce(
+      (acc, folder) => {
+        // Remove @userId from the folder name
+        const cleanFolderName = folder.split("@")[0];
+        // Map the forms for this folder, removing @userId from each form name
+        acc[cleanFolderName] = folderForms[folder].map(
+          (form) => form.split("@")[0]
+        );
+        return acc;
+      },
+      {}
+    );
 
     res.status(200).json({
-      user,
-      folders: folders.map((f) => f.name.split("@")[0]),  // Removing @userId from folder names
-      folderForms: responseFolderForms,  // Clean folder names and form names
+      user: user.toObject(),
+      folders: folders.map((f) => f.name.split("@")[0]), // Removing @userId from folder names
+      folderForms: responseFolderForms, // Clean folder names and form names
     });
   } catch (error) {
     // Handle errors (token decoding, DB queries, etc.)
-    console.error("Error fetching user or validating access:", error.message);
+    console.error(
+      "Error fetching user or validating access:",
+      error.message
+    );
     res.status(500).json({
-      error: "An unexpected error occurred while fetching the user, folders, or forms.",
+      error:
+        "An unexpected error occurred while fetching the user, folders, or forms.",
     });
   }
 };
 
-
 const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { username, email, password, newPassword } = req.body;
+  const { username, email, password, newPassword, theme } = req.body;
 
   // Validate and convert the ID
   const userId = mongoose.Types.ObjectId.isValid(id)
@@ -305,7 +350,9 @@ const updateUser = async (req, res) => {
       if (username) user.username = username;
       if (email) user.email = email;
     }
-
+    if (theme) {
+      user.theme = theme;
+    }
     // Save the updated user
     await user.save();
 
@@ -331,35 +378,45 @@ const createFolder = async (req, res) => {
   }
 
   // Check if folderName contains the '@' symbol
-  if (folderName.includes('@')) {
-    return res.status(400).json({ message: "Folder name cannot contain the '@' symbol" });
+  if (folderName.includes("@")) {
+    return res
+      .status(400)
+      .json({ message: "Folder name cannot contain the '@' symbol" });
   }
 
   try {
     // Create a new folder associated with the userId in the format folderName@userId
     const folderNameWithUserId = `${folderName}@${userId}`;
-    const newFolder = new Folder({ name: folderNameWithUserId, userId });
+    const newFolder = new Folder({
+      name: folderNameWithUserId,
+      userId,
+    });
     await newFolder.save();
 
     // Retrieve all folders associated with the userId
     const userFolders = await Folder.find({ userId }).select("name"); // Only select folder names
 
     // Map to get an array of folder names in the original format (without the @userId part)
-    const folderNames = userFolders.map((folder) => folder.name.split('@')[0]);
+    const folderNames = userFolders.map(
+      (folder) => folder.name.split("@")[0]
+    );
 
     // Respond with the array of folder names
     res.status(201).json(folderNames);
   } catch (error) {
     // Log the error for debugging
-    console.error("Error creating folder or retrieving folders:", error.message);
+    console.error(
+      "Error creating folder or retrieving folders:",
+      error.message
+    );
 
     // Handle server errors
     res.status(500).json({
-      error: "An unexpected error occurred while processing the request.",
+      error:
+        "An unexpected error occurred while processing the request.",
     });
   }
 };
-
 
 const deleteFolder = async (req, res) => {
   const { folderName } = req.body; // Extract folderName from request body
@@ -396,7 +453,9 @@ const deleteFolder = async (req, res) => {
     });
 
     // Extract form names to delete responses and analytics
-    const formNamesToDelete = formsToDelete.map((form) => form.formName);
+    const formNamesToDelete = formsToDelete.map(
+      (form) => form.formName
+    );
 
     // Delete all forms associated with the folder
     await Form.deleteMany({
@@ -430,13 +489,15 @@ const deleteFolder = async (req, res) => {
       if (!folderForms[originalFolderName]) {
         folderForms[originalFolderName] = [];
       }
-      folderForms[originalFolderName].push(form.formName.split("@")[0]);
+      folderForms[originalFolderName].push(
+        form.formName.split("@")[0]
+      );
     });
 
     // Include folders without forms
     const folders = await Folder.find({ userId }).select("name -_id");
-    const folderNames = folders.map((folder) =>
-      folder.name.split("@")[0] // Remove userId from folderName
+    const folderNames = folders.map(
+      (folder) => folder.name.split("@")[0] // Remove userId from folderName
     );
 
     folderNames.forEach((originalFolderName) => {
@@ -452,17 +513,18 @@ const deleteFolder = async (req, res) => {
     });
   } catch (error) {
     // Log the error for debugging
-    console.error("Error deleting folder or retrieving folders:", error.message);
+    console.error(
+      "Error deleting folder or retrieving folders:",
+      error.message
+    );
 
     // Handle server errors
     res.status(500).json({
-      error: "An unexpected error occurred while processing the request.",
+      error:
+        "An unexpected error occurred while processing the request.",
     });
   }
 };
-
-
-
 
 // Create a new form
 const createForm = async (req, res) => {
@@ -476,7 +538,9 @@ const createForm = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
 
     // Validate formName
@@ -508,7 +572,7 @@ const createForm = async (req, res) => {
     formsByFolder.forEach((form) => {
       // Clean the folder name (remove @userId)
       const cleanedFolderName = form.folderName.split("@")[0];
-      
+
       if (!folderForms[cleanedFolderName]) {
         folderForms[cleanedFolderName] = [];
       }
@@ -535,7 +599,6 @@ const createForm = async (req, res) => {
   }
 };
 
-
 const deleteForm = async (req, res) => {
   try {
     const { formName, folderName } = req.body; // Extract data from the request body
@@ -547,7 +610,9 @@ const deleteForm = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
 
     // Check if folder exists
@@ -604,7 +669,9 @@ const deleteForm = async (req, res) => {
 
     // Include folders that have no forms (empty folders)
     const folders = await Folder.find({ userId }).select("name -_id");
-    const cleanedFolderNames = folders.map((f) => f.name.split("@")[0]); // Clean folder names
+    const cleanedFolderNames = folders.map(
+      (f) => f.name.split("@")[0]
+    ); // Clean folder names
 
     // Ensure every folder is represented, even if empty
     cleanedFolderNames.forEach((folder) => {
@@ -614,15 +681,20 @@ const deleteForm = async (req, res) => {
     });
 
     // Respond with cleaned folder names and folder-to-forms mapping
-    res.status(200).json({ folders: cleanedFolderNames, folderForms });
+    res
+      .status(200)
+      .json({ folders: cleanedFolderNames, folderForms });
   } catch (error) {
-    console.error("Error deleting form or retrieving forms:", error.message);
+    console.error(
+      "Error deleting form or retrieving forms:",
+      error.message
+    );
     res.status(500).json({
-      error: "An unexpected error occurred while processing the request.",
+      error:
+        "An unexpected error occurred while processing the request.",
     });
   }
 };
-
 
 const updateFormContent = async (req, res) => {
   try {
@@ -637,7 +709,9 @@ const updateFormContent = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
 
     // Destructure data from the request body
@@ -646,7 +720,9 @@ const updateFormContent = async (req, res) => {
 
     // Validate required fields
     if (!formName || !folderName) {
-      return res.status(400).json({ error: "Missing required formName or folderName" });
+      return res
+        .status(400)
+        .json({ error: "Missing required formName or folderName" });
     }
 
     // Generate the current formatted formName and folderName
@@ -674,17 +750,27 @@ const updateFormContent = async (req, res) => {
 
         // Update related analytics and responses with the new formName
         await Analytics.updateMany(
-          { userId, formName: currentFormattedFormName, folderName: formattedFolderName },
+          {
+            userId,
+            formName: currentFormattedFormName,
+            folderName: formattedFolderName,
+          },
           { $set: { formName: newFormattedFormName } }
         );
 
         await Response.updateMany(
-          { userId, formName: currentFormattedFormName, folderName: formattedFolderName },
+          {
+            userId,
+            formName: currentFormattedFormName,
+            folderName: formattedFolderName,
+          },
           { $set: { formName: newFormattedFormName } }
         );
 
         await existingForm.save();
-        return res.status(200).json({ message: "Form name updated successfully" });
+        return res
+          .status(200)
+          .json({ message: "Form name updated successfully" });
       } catch (error) {
         console.error("Error updating form name:", error);
         return res.status(500).json({ error: "Server error" });
@@ -693,7 +779,9 @@ const updateFormContent = async (req, res) => {
 
     // Check if elements are provided for updating content
     if (!elements) {
-      return res.status(400).json({ error: "Missing required elements field" });
+      return res
+        .status(400)
+        .json({ error: "Missing required elements field" });
     }
 
     // Find the existing form using the formatted formName
@@ -723,7 +811,6 @@ const updateFormContent = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
-
 
 const addFormResponses = async (req, res) => {
   const { id } = req.params; // Extract userId from the URL parameters
@@ -776,7 +863,8 @@ const addFormResponses = async (req, res) => {
       // Validate required fields in each response
       if (!order || !buttonType) {
         return res.status(400).json({
-          message: "order and buttonType are required for each response",
+          message:
+            "order and buttonType are required for each response",
         });
       }
 
@@ -803,7 +891,9 @@ const addFormResponses = async (req, res) => {
         await newResponse.save();
         savedResponses.push(newResponse);
       } else {
-        console.log(`Element not found for order ${order} and buttonType ${buttonType}`);
+        console.log(
+          `Element not found for order ${order} and buttonType ${buttonType}`
+        );
       }
     }
 
@@ -820,8 +910,6 @@ const addFormResponses = async (req, res) => {
     });
   }
 };
-
-
 
 const getFormResponses = async (req, res) => {
   const { id } = req.params; // Extract userId from the URL parameters
@@ -875,8 +963,6 @@ const getFormResponses = async (req, res) => {
   }
 };
 
-
-
 const getFormContent = async (req, res) => {
   try {
     console.log("Reaching getFormContent");
@@ -891,7 +977,9 @@ const getFormContent = async (req, res) => {
       : null;
 
     if (!userId) {
-      return res.status(400).json({ message: "Invalid userId format" });
+      return res
+        .status(400)
+        .json({ message: "Invalid userId format" });
     }
 
     // Extract formName and folderName from query parameters
@@ -900,7 +988,9 @@ const getFormContent = async (req, res) => {
 
     // Check if all required fields are provided
     if (!formName || !folderName) {
-      return res.status(400).json({ error: "Missing formName or folderName" });
+      return res
+        .status(400)
+        .json({ error: "Missing formName or folderName" });
     }
 
     // Generate the formatted folderName and formName for lookup
@@ -934,8 +1024,6 @@ const getFormContent = async (req, res) => {
   }
 };
 
-
-
 const updateAnalytics = async (req, res) => {
   const { id } = req.params; // Extract user ID from the request parameters
   const { folderName, formName, analytics } = req.body; // Extract folderName, formName, and analytics from the request body
@@ -952,7 +1040,9 @@ const updateAnalytics = async (req, res) => {
   try {
     // Validate the analytics type
     if (!["view", "start", "completed"].includes(analytics)) {
-      return res.status(400).json({ message: "Invalid analytics type" });
+      return res
+        .status(400)
+        .json({ message: "Invalid analytics type" });
     }
 
     // Format the folderName to include the userId
@@ -966,7 +1056,11 @@ const updateAnalytics = async (req, res) => {
 
     // Find the document to update or create a new one if it doesn't exist
     const result = await Analytics.findOneAndUpdate(
-      { userId, folderName: formattedFolderName, formName: formattedFormName },
+      {
+        userId,
+        folderName: formattedFolderName,
+        formName: formattedFormName,
+      },
       updateOperation,
       { new: true, upsert: true } // Create a new document if one doesn't exist
     );
@@ -990,7 +1084,6 @@ const updateAnalytics = async (req, res) => {
     });
   }
 };
-
 
 const getAnalytics = async (req, res) => {
   const { id } = req.params; // Extract user ID from URL params
@@ -1022,7 +1115,9 @@ const getAnalytics = async (req, res) => {
     console.log("analyticsData:", analyticsData);
 
     if (!analyticsData) {
-      return res.status(404).json({ message: "Analytics data not found" });
+      return res
+        .status(404)
+        .json({ message: "Analytics data not found" });
     }
 
     // Send analytics data
@@ -1036,7 +1131,9 @@ const getAnalytics = async (req, res) => {
   } catch (error) {
     // Handle errors
     console.error("Error fetching analytics:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
@@ -1054,5 +1151,5 @@ module.exports = {
   getAnalytics,
   updateUser,
   addWorkSpaces,
-  getWorkSpaces
+  getWorkSpaces,
 };
