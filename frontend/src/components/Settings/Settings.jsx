@@ -157,6 +157,8 @@ const Settings = ({ setIsSettingsOpen }) => {
         );
       }
     } catch (error) {
+      localStorage.clear();
+      sessionStorage.clear();
       // Handle errors gracefully
       console.error("Error updating user:", error);
     }
