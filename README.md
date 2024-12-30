@@ -20,7 +20,7 @@ Check out the live demo here: **FormBot on Render**
 
 **Responses and Analytics Screen:**
 
-![Screenshot 2024-12-30 155744](https://github.com/user-attachments/assets/351d3a80-f49a-4c5e-9bac-4067db292351)
+![Screenshot 2024-12-30 155753](https://github.com/user-attachments/assets/391767c7-761e-4690-9ab4-c83b4f5589ce)
 
 # **🌟 Features**
 
