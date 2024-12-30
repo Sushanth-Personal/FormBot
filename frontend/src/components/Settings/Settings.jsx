@@ -6,6 +6,7 @@ import { useUserContext } from "../../Contexts/UserContext";
 import { api } from "../../api/api";
 import { fetchUserData } from "../../api/api";
 import PropTypes from "prop-types"; // Import PropTypes for validation
+import ClipLoader from "react-spinners/ClipLoader";
 const Settings = ({ setIsSettingsOpen }) => {
   useAuth();
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const Settings = ({ setIsSettingsOpen }) => {
     oldPassword: "",
     newPassword: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isFormUpdated, setIsFormUpdated] = useState(false);
@@ -37,6 +39,13 @@ const Settings = ({ setIsSettingsOpen }) => {
     console.log("updated", updatedUserData);
     if (updatedUserData) {
       setUserData(updatedUserData);
+    }
+  }, [isFormUpdated]);
+
+  useEffect(() => {
+    if (isFormUpdated) {
+      alert("User details updated successfully");
+      setIsFormUpdated(false);
     }
   }, [isFormUpdated]);
 
@@ -70,6 +79,7 @@ const Settings = ({ setIsSettingsOpen }) => {
 
   // Handle form submission (Update action)
   const handleUpdate = async () => {
+    setIsLoading(true);
     if (!formData.username || !formData.email) {
       setError({
         ...error,
@@ -138,7 +148,7 @@ const Settings = ({ setIsSettingsOpen }) => {
 
       // Handle successful update
       if (response.status === 200) {
-        alert("User updated successfully!");
+        setIsLoading(false);
 
         // Fetch updated user data
         const updatedUserData = await fetchUserData(userData._id);
@@ -278,7 +288,11 @@ const Settings = ({ setIsSettingsOpen }) => {
             className={styles.updateButton}
             onClick={handleUpdate}
           >
-            Update
+            {isLoading ? (
+              <ClipLoader color="white" size={25} />
+            ) : (
+              "Update"
+            )}
           </button>
         </div>
       </div>
